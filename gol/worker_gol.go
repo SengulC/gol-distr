@@ -95,6 +95,8 @@ type GOLOperations struct{}
 
 func (s *GOLOperations) UpdateBoard(req Request, res *Response) (err error) {
 	fmt.Println("Got World")
+	// for loop
+	//	updateBoard()
 	res.World = UpdateBoard(Request.World, Request.turns, Request.imageHeight, Request.imageWidth)
 	return
 }

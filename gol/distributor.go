@@ -37,6 +37,8 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
+	// PASTE CLIENT.GO CODE HERE
+
 	/*
 		SEND DATA OVER TO GOL WORKER
 		...
