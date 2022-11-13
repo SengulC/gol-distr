@@ -1,6 +1,9 @@
 package gol
 
 import (
+	"flag"
+	"fmt"
+	"net/rpc"
 	"strconv"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -14,16 +17,35 @@ type distributorChannels struct {
 	ioInput    <-chan uint8
 }
 
+var UpdateHandler = "UpdateOperations.UpdateBoard"
+
+type Response struct {
+	World          [][]byte
+	Cells          []util.Cell
+	AliveCellCount int
+}
+
+type Request struct {
+	World [][]byte
+	P     Params
+}
+
+var response = new(Response)
+
+func makeCall(client *rpc.Client, world [][]byte, p Params) {
+	request := Request{World: world, P: p}
+	client.Call(UpdateHandler, request, response)
+	fmt.Println("Responded")
+}
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 	// TODO: Create a 2D slice to store the world.
-	// figure out the name of the file from the params, send it down channel
-	// after sending down appropriate command, start io goroutine
 	name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
-	// name := fmt.Sprintf("%dx%d", p.ImageWidth, p.ImageHeight)
 	c.ioCommand <- ioInput
 	c.ioFilename <- name
 
+	// initialise worldIn
 	worldIn := make([][]byte, p.ImageHeight)
 	for i := range worldIn {
 		worldIn[i] = make([]byte, p.ImageWidth)
@@ -33,39 +55,29 @@ func distributor(p Params, c distributorChannels) {
 	for row := 0; row < p.ImageHeight; row++ {
 		for col := 0; col < p.ImageWidth; col++ {
 			worldIn[row][col] = <-c.ioInput
-			// fmt.Println(worldIn[row][col])
 		}
 	}
 
-	// PASTE CLIENT.GO CODE HERE
+	// TODO: Execute all turns of the Game of Life.
 
-	/*
-		SEND DATA OVER TO GOL WORKER
-		...
-		ONCE RECEIVED CONTINUE
-	*/
+	server := flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+	flag.Parse()
+	client, _ := rpc.Dial("tcp", *server)
+	// connected to server
+	defer client.Close()
 
-	// count final worldOut's state
-	var count int
-	var cells []util.Cell
-	for row := 0; row < p.ImageHeight; row++ {
-		for col := 0; col < p.ImageWidth; col++ {
-			if worldOut[row][col] == 255 {
-				c := util.Cell{X: col, Y: row}
-				cells = append(cells, c)
-				count++
-			}
-		}
-	}
+	makeCall(client, worldIn, p)
+	// pass worldIn to server
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	// pass it down events channel (list of alive cells)
-	c.events <- FinalTurnComplete{p.Turns, cells}
+	// get back info from server
+
+	c.events <- FinalTurnComplete{p.Turns, response.Cells}
+	// where cells: alive cells!
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
-
 	c.events <- StateChange{p.Turns, Quitting}
 
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
