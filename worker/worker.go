@@ -75,9 +75,20 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 type UpdateOperations struct{}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("in update method")
+
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
 		return
+	}
+
+	res.World = make([][]byte, req.P.ImageHeight)
+	for row := 0; row < req.P.ImageHeight; row++ {
+		res.World[row] = make([]byte, req.P.ImageWidth)
+		for col := 0; col < req.P.ImageWidth; col++ {
+			res.World[row][col] = req.World[row][col]
+			fmt.Println(res.World[row][col])
+		}
 	}
 
 	turn := 0
