@@ -64,11 +64,6 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 		}
 	}
 
-	for row := 0; row < p.ImageHeight; row++ {
-		for col := 0; col < p.ImageWidth; col++ {
-			worldIn[row][col] = worldOut[row][col]
-		}
-	}
 	return worldOut
 }
 
@@ -87,13 +82,14 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		res.World[row] = make([]byte, req.P.ImageWidth)
 		for col := 0; col < req.P.ImageWidth; col++ {
 			res.World[row][col] = req.World[row][col]
-			fmt.Println(res.World[row][col])
 		}
 	}
 
 	turn := 0
 	for turn < req.P.Turns {
-		res.World = UpdateBoard(req.World, req.P)
+		fmt.Println("TURN LOOP")
+		util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
+		res.World = UpdateBoard(res.World, req.P)
 		turn++
 	}
 

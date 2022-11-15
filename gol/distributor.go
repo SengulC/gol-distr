@@ -32,7 +32,8 @@ type Request struct {
 
 var response = new(Response)
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
-var flagBool = false
+
+//var flagBool = false
 
 func makeCall(client *rpc.Client, world [][]byte, p Params) {
 	fmt.Println("entered makeCall")
@@ -44,7 +45,7 @@ func makeCall(client *rpc.Client, world [][]byte, p Params) {
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 	// TODO: Create a 2D slice to store the world.
-	fmt.Println("distr")
+	fmt.Println("distributor")
 	name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
 	c.ioCommand <- ioInput
 	c.ioFilename <- name
@@ -55,16 +56,12 @@ func distributor(p Params, c distributorChannels) {
 		worldIn[i] = make([]byte, p.ImageWidth)
 	}
 
-	fmt.Println("trying to make worldIn")
-
 	// get image byte by byte and store in: worldIn
 	for row := 0; row < p.ImageHeight; row++ {
 		for col := 0; col < p.ImageWidth; col++ {
 			worldIn[row][col] = <-c.ioInput
 		}
 	}
-
-	fmt.Println("made worldIn")
 
 	// TODO: Execute all turns of the Game of Life.
 
