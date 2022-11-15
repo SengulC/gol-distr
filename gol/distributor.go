@@ -30,12 +30,19 @@ type Request struct {
 	P     Params
 }
 
-var response = new(Response)
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
 
 //var flagBool = false
 
-func makeCall(client *rpc.Client, world [][]byte, p Params) {
+func makeWorld(world [][]byte) [][]byte {
+	world2 := make([][]byte, len(world))
+	for col := 0; col < len(world); col++ {
+		world2[col] = make([]byte, len(world))
+	}
+	return world2
+}
+
+func makeCall(client *rpc.Client, world [][]byte, p Params, response *Response) {
 	fmt.Println("entered makeCall")
 	request := Request{World: world, P: p}
 	client.Call(UpdateHandler, request, response)
@@ -75,7 +82,9 @@ func distributor(p Params, c distributorChannels) {
 	fmt.Println("connected to server")
 	defer client.Close()
 
-	makeCall(client, worldIn, p)
+	var response = new(Response)
+	response.World = makeWorld(response.World)
+	makeCall(client, worldIn, p, response)
 	// pass worldIn to server
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.

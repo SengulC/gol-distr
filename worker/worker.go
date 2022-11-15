@@ -19,7 +19,7 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 	for row := 0; row < p.ImageHeight; row++ {
 		worldOut[row] = make([]byte, p.ImageWidth)
 		for col := 0; col < p.ImageWidth; col++ {
-			worldOut[row][col] = worldIn[row][col]
+			worldOut[row][col] = 0
 		}
 	}
 
@@ -52,6 +52,8 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 			if element == 0 {
 				if counter == 3 {
 					worldOut[row][col] = 255
+				} else {
+					worldOut[row][col] = 0
 				}
 			} else {
 				// if element alive
@@ -59,6 +61,8 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 					worldOut[row][col] = 0
 				} else if counter > 3 {
 					worldOut[row][col] = 0
+				} else {
+					worldOut[row][col] = 255
 				}
 			}
 		}
@@ -87,19 +91,13 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
-		fmt.Println("TURN LOOP")
-		util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
-
-		worldOut := UpdateBoard(res.World, req.P)
-		for row := 0; row < len(worldOut); row++ {
-			for col := 0; col < len(worldOut); col++ {
-				res.World[row][col] = worldOut[row][col]
-			}
-		}
+		//fmt.Println("TURN LOOP")
+		res.World = UpdateBoard(res.World, req.P)
+		//util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
 		turn++
 	}
 
-	var count int
+	count := 0
 	var cells []util.Cell
 	for row := 0; row < req.P.ImageHeight; row++ {
 		for col := 0; col < req.P.ImageWidth; col++ {
