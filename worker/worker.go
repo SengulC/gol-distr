@@ -89,7 +89,13 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 	for turn < req.P.Turns {
 		fmt.Println("TURN LOOP")
 		util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
-		res.World = UpdateBoard(res.World, req.P)
+
+		worldOut := UpdateBoard(res.World, req.P)
+		for row := 0; row < len(worldOut); row++ {
+			for col := 0; col < len(worldOut); col++ {
+				res.World[row][col] = worldOut[row][col]
+			}
+		}
 		turn++
 	}
 
