@@ -16,6 +16,7 @@ type distributorChannels struct {
 	ioFilename chan<- string
 	ioOutput   chan<- uint8
 	ioInput    <-chan uint8
+	keyPresses <-chan rune
 }
 
 var UpdateHandler = "UpdateOperations.Update"
@@ -45,18 +46,44 @@ func makeWorld(world [][]byte) [][]byte {
 }
 
 func makeCall(client *rpc.Client, world [][]byte, p Params, c distributorChannels, response *Response) {
-	timeOver := time.NewTicker(2 * time.Second)
 	//fmt.Println("entered makeCall")
+	var key rune
+	timeOver := time.NewTicker(2 * time.Second)
 	request := Request{World: world, P: p}
-
 	select {
 	case <-timeOver.C:
 		fmt.Println("2 secs have past!")
 		c.events <- AliveCellsCount{response.Turns, response.AliveCellCount}
+	case key = <-c.keyPresses:
+		switch key {
+		case 's':
+			//save
+			fmt.Println("Saving")
+			c.ioCommand <- ioOutput
+			name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
+			c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+			for row := 0; row < p.ImageHeight; row++ {
+				for col := 0; col < p.ImageWidth; col++ {
+					c.ioOutput <- response.World[row][col]
+				}
+			}
+		case 'q':
+			//Close the controller client program without causing an error on the GoL server.
+			//A new controller should be able to take over interaction with the GoL engine.
+			//Note that you are free to define the nature of how a new controller can take over interaction.
+			//Most likely the state will be reset.
+		case 'k':
+			//All components of the distributed system are shut down cleanly,
+			//& the system outputs a PGM image of the latest state
+		case 'p':
+			//Pause the processing on the AWS node and have the controller print the current turn
+			//If p is pressed again resume the processing and have the controller print "Continuing".
+		}
 	default:
-		fmt.Println("DEFT: making call to update handler")
+		//fmt.Println("DEFT: making call to update handler")
 		client.Call(UpdateHandler, request, response)
 		//client.Go(UpdateHandler, request, response, make(chan *Call, 1))
+		// needs to be .Go so it can be called async & it doesn't wait for a response.
 	}
 	//fmt.Println("Responded")
 }
