@@ -12,6 +12,8 @@ import (
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
+// DISTRIBUTED
+
 // UpdateBoard TODO: Update a single iteration
 func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 	// worldOut = worldIn
