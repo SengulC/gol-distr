@@ -81,8 +81,9 @@ func makeCall(client *rpc.Client, world [][]byte, p Params, c distributorChannel
 		}
 	default:
 		//fmt.Println("DEFT: making call to update handler")
-		client.Call(UpdateHandler, request, response)
-		//client.Go(UpdateHandler, request, response, make(chan *Call, 1))
+		//client.Call(UpdateHandler, request, response)
+		goCall := client.Go(UpdateHandler, request, response, nil)
+		<-goCall.Done
 		// needs to be .Go so it can be called async & it doesn't wait for a response.
 	}
 	//fmt.Println("Responded")
