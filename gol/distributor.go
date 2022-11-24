@@ -23,7 +23,7 @@ var UpdateHandler = "UpdateOperations.Update"
 
 type Response struct {
 	World          [][]byte
-	Cells          []util.Cell
+	AliveCells     []util.Cell
 	Turns          int
 	AliveCellCount int
 }
@@ -52,7 +52,7 @@ func makeCall(client *rpc.Client, world [][]byte, p Params, c distributorChannel
 	request := Request{World: world, P: p}
 	select {
 	case <-timeOver.C:
-		fmt.Println("2 secs have past!")
+		fmt.Println("2 secs have passed!")
 		c.events <- AliveCellsCount{response.Turns, response.AliveCellCount}
 	case key = <-c.keyPresses:
 		switch key {
@@ -83,7 +83,7 @@ func makeCall(client *rpc.Client, world [][]byte, p Params, c distributorChannel
 		//fmt.Println("DEFT: making call to update handler")
 		//client.Call(UpdateHandler, request, response)
 		goCall := client.Go(UpdateHandler, request, response, nil)
-		<-goCall.Done
+		<-goCall.Done // where do we place this?
 		// needs to be .Go so it can be called async & it doesn't wait for a response.
 	}
 	//fmt.Println("Responded")
@@ -138,7 +138,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	c.events <- FinalTurnComplete{p.Turns, response.Cells}
+	c.events <- FinalTurnComplete{p.Turns, response.AliveCells}
 	// where cells: alive cells!
 
 	// Make sure that the Io has finished any output before exiting.

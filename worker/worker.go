@@ -111,7 +111,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		}
 	}
 
-	res.Cells = cells
+	res.AliveCells = cells
 	res.AliveCellCount = count
 
 	//fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
@@ -126,4 +126,5 @@ func main() {
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
+	// do we need 2 change any of this?
 }
