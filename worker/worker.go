@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
@@ -76,7 +75,7 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 type UpdateOperations struct{}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("in update method")
+	//fmt.Println("in update method")
 
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
@@ -93,6 +92,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
+		res.Turns = turn
 		//fmt.Println("TURN LOOP")
 		res.World = UpdateBoard(res.World, req.P)
 		//util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
@@ -114,7 +114,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 	res.Cells = cells
 	res.AliveCellCount = count
 
-	fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
+	//fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
 	return
 }
 
