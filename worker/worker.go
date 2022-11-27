@@ -96,7 +96,7 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 		fmt.Println("umm sorry it's turn 0.")
 		return
 	} else {
-		req.Events <- gol.AliveCellsCount{CompletedTurns: res.AliveCellCount, CellsCount: res.CompletedTurns}
+		req.Events <- gol.AliveCellsCount{CompletedTurns: res.CompletedTurns, CellsCount: calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)}
 		return
 	}
 }
