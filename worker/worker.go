@@ -88,6 +88,19 @@ func calcAliveCellCount(height, width int, world [][]byte) int {
 	return count
 }
 
+func calcAliveCells(height, width int, world [][]byte) []util.Cell {
+	var cells []util.Cell
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				c := util.Cell{X: col, Y: row}
+				cells = append(cells, c)
+			}
+		}
+	}
+	return cells
+}
+
 type UpdateOperations struct{}
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
@@ -141,20 +154,8 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		turn++
 	}
 
-	count := 0
-	var cells []util.Cell
-	for row := 0; row < req.P.ImageHeight; row++ {
-		for col := 0; col < req.P.ImageWidth; col++ {
-			if res.World[row][col] == 255 {
-				c := util.Cell{X: col, Y: row}
-				cells = append(cells, c)
-				count++
-			}
-		}
-	}
-
-	res.AliveCells = cells
-	res.AliveCellCount = count
+	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, res.World)
+	res.AliveCellCount = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)
 
 	//fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
 	return
