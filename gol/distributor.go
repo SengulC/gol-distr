@@ -20,17 +20,20 @@ type distributorChannels struct {
 }
 
 var UpdateHandler = "UpdateOperations.Update"
+var TickerHandler = "UpdateOperations.Ticker"
 
 type Response struct {
 	World          [][]byte
 	AliveCells     []util.Cell
-	Turns          int
+	CompletedTurns int
 	AliveCellCount int
 }
 
 type Request struct {
-	World [][]byte
-	P     Params
+	World    [][]byte
+	P        Params
+	Events   chan<- Event
+	TurnZero chan bool
 }
 
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
@@ -45,49 +48,111 @@ func makeWorld(world [][]byte) [][]byte {
 	return world2
 }
 
-func makeCall(client *rpc.Client, world [][]byte, p Params, c distributorChannels, response *Response) {
-	//fmt.Println("entered makeCall")
-	var key rune
-	timeOver := time.NewTicker(2 * time.Second)
-	request := Request{World: world, P: p}
-	select {
-	case <-timeOver.C:
-		fmt.Println("2 secs have passed!")
-		c.events <- AliveCellsCount{response.Turns, response.AliveCellCount}
-	case key = <-c.keyPresses:
-		switch key {
-		case 's':
-			//save
-			fmt.Println("Saving")
-			c.ioCommand <- ioOutput
-			name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
-			c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
-			for row := 0; row < p.ImageHeight; row++ {
-				for col := 0; col < p.ImageWidth; col++ {
-					c.ioOutput <- response.World[row][col]
-				}
-			}
-		case 'q':
-			//Close the controller client program without causing an error on the GoL server.
-			//A new controller should be able to take over interaction with the GoL engine.
-			//Note that you are free to define the nature of how a new controller can take over interaction.
-			//Most likely the state will be reset.
-		case 'k':
-			//All components of the distributed system are shut down cleanly,
-			//& the system outputs a PGM image of the latest state
-		case 'p':
-			//Pause the processing on the AWS node and have the controller print the current turn
-			//If p is pressed again resume the processing and have the controller print "Continuing".
-		}
-	default:
-		//fmt.Println("DEFT: making call to update handler")
-		//client.Call(UpdateHandler, request, response)
-		goCall := client.Go(UpdateHandler, request, response, nil)
-		<-goCall.Done // where do we place this?
-		// needs to be .Go so it can be called async & it doesn't wait for a response.
-	}
+func makeCall(client *rpc.Client, p Params, events chan<- Event, response *Response, request Request) {
+	//timeOver := time.NewTicker(2 * time.Second)
+	//for {
+	//	select {
+	//	//case key = <-c.keyPresses:
+	//	//	switch key {
+	//	//	case 's':
+	//	//		//save
+	//	//		fmt.Println("Saving")
+	//	//		c.ioCommand <- ioOutput
+	//	//		name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
+	//	//		c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+	//	//		for row := 0; row < p.ImageHeight; row++ {
+	//	//			for col := 0; col < p.ImageWidth; col++ {
+	//	//				c.ioOutput <- response.World[row][col]
+	//	//			}
+	//	//		}
+	//	//	case 'q':
+	//	//		//Close the controller client program without causing an error on the GoL server.
+	//	//		//A new controller should be able to take over interaction with the GoL engine.
+	//	//		//Note that you are free to define the nature of how a new controller can take over interaction.
+	//	//		//Most likely the state will be reset.
+	//	//	case 'k':
+	//	//		//All components of the distributed system are shut down cleanly,
+	//	//		//& the system outputs a PGM image of the latest state
+	//	//	case 'p':
+	//	//		//Pause the processing on the AWS node and have the controller print the current turn
+	//	//		//If p is pressed again resume the processing and have the controller print "Continuing".
+	//	//	}
+	//	case <-timeOver.C:
+	//		fmt.Println("2 seconds have passed! making ticker call")
+	//		goCall = client.Go(TickerHandler, request, response, nil)
+	//		<-goCall.Done
+	//	default:
+	//		fmt.Println("DEFAULT: making call to update handler")
+	//		goCall = client.Go(UpdateHandler, request, response, nil)
+	//		<-goCall.Done
+	//		c.events <- FinalTurnComplete{p.Turns, response.AliveCells}
+	//	}
+	//}
 	//fmt.Println("Responded")
+	fmt.Println("DEFAULT: making call to update handler")
+	goCall := client.Go(UpdateHandler, request, response, nil)
+	<-goCall.Done
+	events <- FinalTurnComplete{p.Turns, response.AliveCells}
 }
+
+func ticker(client *rpc.Client, response *Response, request Request) {
+	//timeOver := time.NewTicker(2 * time.Second)
+	//for {
+	//	select {
+	//	//case key = <-c.keyPresses:
+	//	//	switch key {
+	//	//	case 's':
+	//	//		//save
+	//	//		fmt.Println("Saving")
+	//	//		c.ioCommand <- ioOutput
+	//	//		name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
+	//	//		c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+	//	//		for row := 0; row < p.ImageHeight; row++ {
+	//	//			for col := 0; col < p.ImageWidth; col++ {
+	//	//				c.ioOutput <- response.World[row][col]
+	//	//			}
+	//	//		}
+	//	//	case 'q':
+	//	//		//Close the controller client program without causing an error on the GoL server.
+	//	//		//A new controller should be able to take over interaction with the GoL engine.
+	//	//		//Note that you are free to define the nature of how a new controller can take over interaction.
+	//	//		//Most likely the state will be reset.
+	//	//	case 'k':
+	//	//		//All components of the distributed system are shut down cleanly,
+	//	//		//& the system outputs a PGM image of the latest state
+	//	//	case 'p':
+	//	//		//Pause the processing on the AWS node and have the controller print the current turn
+	//	//		//If p is pressed again resume the processing and have the controller print "Continuing".
+	//	//	}
+	//	case <-timeOver.C:
+	//		fmt.Println("2 seconds have passed! making ticker call")
+	//		goCall = client.Go(TickerHandler, request, response, nil)
+	//		<-goCall.Done
+	//	default:
+	//		fmt.Println("DEFAULT: making call to update handler")
+	//		goCall = client.Go(UpdateHandler, request, response, nil)
+	//		<-goCall.Done
+	//		c.events <- FinalTurnComplete{p.Turns, response.AliveCells}
+	//	}
+	//}
+	//fmt.Println("Responded")
+	fmt.Println("2 SECONDS HAVE PASSED: making call to ticker handler")
+	goCall := client.Go(TickerHandler, request, response, nil)
+	<-goCall.Done
+}
+
+//func ticker(events chan<- Event, completedTurns, aliveCellCount int, turnZero chan bool) {
+//	timeOver := time.Tick(2 * time.Second)
+//	for {
+//		//<-turnZero
+//		select {
+//		case <-timeOver:
+//			fmt.Println("2 secs have passed!")
+//			//fmt.Println("2 secs have passed! AND it's not turn 0!")
+//			events <- AliveCellsCount{completedTurns, aliveCellCount}
+//		}
+//	}
+//}
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -107,6 +172,9 @@ func distributor(p Params, c distributorChannels) {
 	for row := 0; row < p.ImageHeight; row++ {
 		for col := 0; col < p.ImageWidth; col++ {
 			worldIn[row][col] = <-c.ioInput
+			//if worldIn[row][col] == 255 {
+			//	c.events <- CellFlipped{0, util.Cell{X: col, Y: row}}
+			//}
 		}
 	}
 
@@ -122,10 +190,50 @@ func distributor(p Params, c distributorChannels) {
 	//fmt.Println("connected to server")
 	defer client.Close()
 
+	turnZero := make(chan bool, 1)
+
 	var response = new(Response)
+	request := Request{World: worldIn, P: p, Events: c.events, TurnZero: turnZero}
 	response.World = makeWorld(response.World)
-	makeCall(client, worldIn, p, c, response)
-	// pass worldIn to server
+
+	var key rune
+	timeOver := time.NewTicker(2 * time.Second)
+L:
+	for {
+		select {
+		case key = <-c.keyPresses:
+			switch key {
+			case 's':
+				//save
+				//fmt.Println("Saving")
+				//c.ioCommand <- ioOutput
+				//name := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight)
+				//c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+				//for row := 0; row < p.ImageHeight; row++ {
+				//	for col := 0; col < p.ImageWidth; col++ {
+				//		c.ioOutput <- response.World[row][col]
+				//	}
+				//}
+				//save()
+				//case 'q':
+				//	//Close the controller client program without causing an error on the GoL server.
+				//	//A new controller should be able to take over interaction with the GoL engine.
+				//	//Note that you are free to define the nature of how a new controller can take over interaction.
+				//	//Most likely the state will be reset.
+				//case 'k':
+				//	//All components of the distributed system are shut down cleanly,
+				//	//& the system outputs a PGM image of the latest state
+				//case 'p':
+				//	//Pause the processing on the AWS node and have the controller print the current turn
+				//	//If p is pressed again resume the processing and have the controller print "Continuing".
+			}
+		case <-timeOver.C:
+			ticker(client, response, request)
+		default:
+			makeCall(client, p, c.events, response, request)
+			break L
+		}
+	}
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 	// get back info from server
@@ -138,8 +246,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	c.events <- FinalTurnComplete{p.Turns, response.AliveCells}
-	// where cells: alive cells!
+	//c.events <- FinalTurnComplete{p.Turns, response.AliveCells}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle

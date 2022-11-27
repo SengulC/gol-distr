@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
@@ -14,7 +15,7 @@ import (
 // server
 
 // UpdateBoard TODO: Update a single iteration
-func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
+func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
 	// worldOut = worldIn
 	worldOut := make([][]byte, p.ImageHeight)
 	for row := 0; row < p.ImageHeight; row++ {
@@ -49,19 +50,22 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 				counter--
 			}
 
-			// if element dead
+			// if element dead, 0
 			if element == 0 {
 				if counter == 3 {
 					worldOut[row][col] = 255
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 0
 				}
 			} else {
-				// if element alive
+				// if element alive, 255
 				if counter < 2 {
 					worldOut[row][col] = 0
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else if counter > 3 {
 					worldOut[row][col] = 0
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 255
 				}
@@ -72,7 +76,43 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 	return worldOut
 }
 
+func calcAliveCellCount(height, width int, world [][]byte) int {
+	var count int
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
 type UpdateOperations struct{}
+
+func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("in the ticker method!")
+	if res.CompletedTurns == 0 {
+		fmt.Println("umm sorry it's turn 0.")
+		return
+	} else {
+		req.Events <- gol.AliveCellsCount{CompletedTurns: res.AliveCellCount, CellsCount: res.CompletedTurns}
+		return
+	}
+}
+
+//func (s *UpdateOperations) SaveImage(req gol.Request, res *gol.Response) (err error) {
+//	fmt.Println("Saving")
+//	req.C.ioCommand <- gol.ioOutput
+//	name := strconv.Itoa(req.P.ImageWidth) + "x" + strconv.Itoa(req.P.ImageHeight)
+//	req.C.ioFilename <- name + "x" + strconv.Itoa(req.P.Turns)
+//	for row := 0; row < req.P.ImageHeight; row++ {
+//		for col := 0; col < req.P.ImageWidth; col++ {
+//			req.C.ioOutput <- res.World[row][col]
+//		}
+//	}
+//	return
+//}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
 	//fmt.Println("in update method")
@@ -92,10 +132,11 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
-		res.Turns = turn
-		//fmt.Println("TURN LOOP")
-		res.World = UpdateBoard(res.World, req.P)
-		//util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
+		//req.TurnZero <- true
+		//fmt.Println("passed true to TZ<-")
+		res.World = UpdateBoard(res.World, req.P, req.Events, turn)
+		//req.Events <- gol.TurnComplete{CompletedTurns: turn}
+		res.CompletedTurns = turn
 		turn++
 	}
 
