@@ -141,6 +141,8 @@ func ticker(client *rpc.Client, response *Response, request Request) {
 		select {
 		case <-timeOver.C:
 			fmt.Println("2 SECONDS HAVE PASSED: making call to ticker handler")
+			fmt.Println("res.compTurns=", response.CompletedTurns)
+
 			goCall := client.Go(TickerHandler, request, response, nil)
 			<-goCall.Done
 			fmt.Println("RECEIVED from handler!")

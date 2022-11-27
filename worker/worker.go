@@ -93,7 +93,7 @@ type UpdateOperations struct{}
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the ticker method!")
 	if res.CompletedTurns == 0 {
-		fmt.Println("umm sorry it's turn 0.")
+		fmt.Println("umm sorry it's turn", res.CompletedTurns)
 		return
 	} else {
 		req.Events <- gol.AliveCellsCount{CompletedTurns: res.CompletedTurns, CellsCount: calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)}
@@ -137,6 +137,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		res.World = UpdateBoard(res.World, req.P, req.Events, turn)
 		//req.Events <- gol.TurnComplete{CompletedTurns: turn}
 		res.CompletedTurns = turn
+		fmt.Println("updated res.compTurns=", res.CompletedTurns)
 		turn++
 	}
 
