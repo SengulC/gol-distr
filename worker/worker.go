@@ -110,11 +110,11 @@ type UpdateOperations struct {
 }
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("in the ticker method!")
+	//fmt.Println("in the ticker method!")
 	s.mutex.Lock()
 
 	res.CompletedTurns = s.completedTurns
-	fmt.Println("ticker alive cells:", s.aliveCells)
+	//fmt.Println("ticker alive cells:", s.aliveCells)
 	res.AliveCellCount = s.aliveCells
 
 	s.mutex.Unlock()

@@ -96,6 +96,7 @@ func distributor(p Params, c distributorChannels) {
 	defer client.Close()
 
 	var response = new(Response)
+	var tickerRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -132,12 +133,20 @@ func distributor(p Params, c distributorChannels) {
 	//	ticker(client, response, request)
 	//default:
 	goCall := client.Go(UpdateHandler, request, response, nil)
-	fmt.Println(response.AliveCells)
+
+	//fmt.Println(response.AliveCells)
 	timeOver := time.NewTicker(2 * time.Second)
-	var tickerRes = new(Response)
+	var key rune
 L:
 	for {
 		select {
+		case key = <-c.keyPresses:
+			switch key {
+			case 'p':
+			case 's':
+			case 'q':
+			case 'k':
+			}
 		case <-goCall.Done:
 			break L
 		case <-timeOver.C:
