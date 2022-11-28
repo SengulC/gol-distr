@@ -13,6 +13,7 @@ import (
 )
 
 // server
+//
 
 // UpdateBoard TODO: Update a single iteration
 func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
@@ -101,15 +102,18 @@ func calcAliveCells(height, width int, world [][]byte) []util.Cell {
 	return cells
 }
 
-type UpdateOperations struct{}
+type UpdateOperations struct {
+	completedTurns int
+	aliveCells     int
+}
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the ticker method!")
-	if res.CompletedTurns == 0 {
+	if s.completedTurns == 0 {
 		fmt.Println("umm sorry it's turn", res.CompletedTurns)
 		return
 	} else {
-		req.Events <- gol.AliveCellsCount{CompletedTurns: res.CompletedTurns, CellsCount: calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)}
+		req.Events <- gol.AliveCellsCount{CompletedTurns: s.completedTurns, CellsCount: s.aliveCells}
 		return
 	}
 }
@@ -143,20 +147,20 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		}
 	}
 
-	turn := 0
-	for turn < req.P.Turns {
+	s.completedTurns = 0
+	for s.completedTurns < req.P.Turns {
 		//req.TurnZero <- true
 		//fmt.Println("passed true to TZ<-")
-		res.World = UpdateBoard(res.World, req.P, req.Events, turn)
+		res.World = UpdateBoard(res.World, req.P, req.Events, s.completedTurns)
 		//req.Events <- gol.TurnComplete{CompletedTurns: turn}
-		res.CompletedTurns = turn
+		res.CompletedTurns = s.completedTurns
 		fmt.Println("updated res.compTurns=", res.CompletedTurns)
-		turn++
+		s.completedTurns++
 	}
 
 	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, res.World)
 	res.AliveCellCount = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)
-
+	s.aliveCells = res.AliveCellCount
 	//fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
 	return
 }

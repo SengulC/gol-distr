@@ -237,8 +237,19 @@ func distributor(p Params, c distributorChannels) {
 	//case <-timeOver.C:
 	//	ticker(client, response, request)
 	//default:
-	go ticker(client, response, request)
-	makeCall(client, p, c.events, response, request)
+	goCall := client.Go(UpdateHandler, request, response, nil)
+	timeOver := time.NewTicker(2 * time.Second)
+
+L:
+	for {
+		select {
+		case <-goCall.Done:
+			break L
+		case <-timeOver.C:
+			client.Call(TickerHandler, request, response)
+		}
+	}
+
 	//}
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
