@@ -120,11 +120,30 @@ func copyMatrix(height, width int, world [][]byte) [][]byte {
 	return world2
 }
 
+func pauseLoop(kP <-chan rune, pause chan bool) {
+	fmt.Println("in pauseLoop func")
+	for {
+		fmt.Println("in the for loop")
+		k := <-kP
+		fmt.Println("in the for loop2")
+		if k == 'p' {
+			fmt.Println("another P!")
+			pause <- true
+			break
+		}
+		fmt.Println("nothings here yet")
+	}
+}
+
 type UpdateOperations struct {
 	completedTurns int
 	aliveCells     int
 	mutex          sync.Mutex
 	currentWorld   [][]byte
+}
+
+func (s *UpdateOperations) Example(req gol.Request, res *gol.Response) (err error) {
+	return
 }
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
@@ -136,6 +155,17 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 	res.AliveCellCount = s.aliveCells
 
 	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+	go pauseLoop(req.KeyPresses, req.Pause)
+	fmt.Println("locked and launched go pause loop")
+	_ = <-req.Pause
+	fmt.Println("got smth from pause chan")
+	s.mutex.Unlock()
+	res.CompletedTurns = s.completedTurns
 	return
 }
 
