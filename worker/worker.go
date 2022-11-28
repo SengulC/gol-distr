@@ -102,6 +102,24 @@ func calcAliveCells(height, width int, world [][]byte) []util.Cell {
 	return cells
 }
 
+func makeMatrixOfSameSize(world [][]byte) [][]byte {
+	world2 := make([][]byte, len(world))
+	for col := 0; col < len(world); col++ {
+		world2[col] = make([]byte, len(world))
+	}
+	return world2
+}
+
+func copyMatrix(height, width int, world [][]byte) [][]byte {
+	var world2 [][]byte
+	for col := 0; col < height; col++ {
+		for row := 0; row < width; row++ {
+			world2[row][col] = world[row][col]
+		}
+	}
+	return world2
+}
+
 type UpdateOperations struct {
 	completedTurns int
 	aliveCells     int
@@ -121,18 +139,20 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 	return
 }
 
-//func (s *UpdateOperations) SaveImage(req gol.Request, res *gol.Response) (err error) {
-//	fmt.Println("Saving")
-//	req.C.ioCommand <- gol.ioOutput
-//	name := strconv.Itoa(req.P.ImageWidth) + "x" + strconv.Itoa(req.P.ImageHeight)
-//	req.C.ioFilename <- name + "x" + strconv.Itoa(req.P.Turns)
-//	for row := 0; row < req.P.ImageHeight; row++ {
-//		for col := 0; col < req.P.ImageWidth; col++ {
-//			req.C.ioOutput <- res.World[row][col]
-//		}
-//	}
-//	return
-//}
+func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("IN SAVE METHOD")
+	s.mutex.Lock()
+	res.World = makeMatrixOfSameSize(s.currentWorld)
+	fmt.Println("ON SERVER", len(res.World))
+	fmt.Println("ON SERVER", len(s.currentWorld))
+	for col := 0; col < req.P.ImageHeight; col++ {
+		for row := 0; row < req.P.ImageWidth; row++ {
+			res.World[col][row] = s.currentWorld[col][row]
+		}
+	}
+	s.mutex.Unlock()
+	return
+}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the upd method")

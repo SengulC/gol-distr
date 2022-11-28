@@ -21,6 +21,7 @@ type distributorChannels struct {
 
 var UpdateHandler = "UpdateOperations.Update"
 var TickerHandler = "UpdateOperations.Ticker"
+var SaveHandler = "UpdateOperations.Save"
 
 type Response struct {
 	World          [][]byte
@@ -39,7 +40,7 @@ var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect 
 
 //var flagBool = false
 
-func makeWorld(world [][]byte) [][]byte {
+func makeMatrix(world [][]byte) [][]byte {
 	world2 := make([][]byte, len(world))
 	for col := 0; col < len(world); col++ {
 		world2[col] = make([]byte, len(world))
@@ -97,6 +98,7 @@ func distributor(p Params, c distributorChannels) {
 
 	var response = new(Response)
 	var tickerRes = new(Response)
+	var saveRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -144,6 +146,16 @@ L:
 			switch key {
 			case 'p':
 			case 's':
+				fmt.Println("Saving")
+				c.ioCommand <- ioOutput
+				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+				client.Call(SaveHandler, request, saveRes)
+				fmt.Println("ON CLIENT", len(saveRes.World))
+				for row := 0; row < p.ImageHeight; row++ {
+					for col := 0; col < p.ImageWidth; col++ {
+						c.ioOutput <- saveRes.World[row][col]
+					}
+				}
 			case 'q':
 			case 'k':
 			}
