@@ -15,6 +15,8 @@ import (
 
 // server
 
+var paused bool
+
 // UpdateBoard TODO: Update a single iteration
 func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
 	// worldOut = worldIn
@@ -159,13 +161,24 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 }
 
 func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("in PAUSE method")
+	paused = true
+	res.CompletedTurns = s.completedTurns
 	s.mutex.Lock()
-	go pauseLoop(req.KeyPresses, req.Pause)
-	fmt.Println("locked and launched go pause loop")
-	_ = <-req.Pause
-	fmt.Println("got smth from pause chan")
+	res.CompletedTurns = s.completedTurns
+	for {
+		if !paused {
+			break
+		}
+	}
 	s.mutex.Unlock()
 	res.CompletedTurns = s.completedTurns
+	return
+}
+
+func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("in CONTINUE method")
+	paused = false
 	return
 }
 
@@ -204,11 +217,11 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 	for turn < req.P.Turns {
 		s.mutex.Lock()
 		s.currentWorld = UpdateBoard(s.currentWorld, req.P, req.Events, turn)
-		s.mutex.Unlock()
 		s.completedTurns = turn
 		//fmt.Println(s.completedTurns)
 		s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 		turn++
+		s.mutex.Unlock()
 	}
 
 	fmt.Println(res.AliveCells)

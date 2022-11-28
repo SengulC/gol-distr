@@ -23,7 +23,7 @@ var UpdateHandler = "UpdateOperations.Update"
 var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
 var PauseHandler = "UpdateOperations.Pause"
-var ExHandler = "UpdateOperations.Example"
+var ContinueHandler = "UpdateOperations.Continue"
 
 type Response struct {
 	World          [][]byte
@@ -33,11 +33,10 @@ type Response struct {
 }
 
 type Request struct {
-	World      [][]byte
-	P          Params
-	Events     chan<- Event
-	KeyPresses <-chan rune
-	Pause      chan bool
+	World  [][]byte
+	P      Params
+	Events chan<- Event
+	Pause  chan bool
 }
 
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
@@ -104,7 +103,6 @@ func distributor(p Params, c distributorChannels) {
 	var tickerRes = new(Response)
 	var saveRes = new(Response)
 	var pauseRes = new(Response)
-	var exRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -142,11 +140,6 @@ func distributor(p Params, c distributorChannels) {
 	//default:
 	goCall := client.Go(UpdateHandler, request, response, nil)
 
-	exChan := make(chan bool, 2)
-	client.Call(ExHandler, Request{World: worldIn, P: p, Pause: exChan}, exRes)
-
-	fmt.Println("got from exChan!")
-
 	//fmt.Println(response.AliveCells)
 	timeOver := time.NewTicker(2 * time.Second)
 	var key rune
@@ -156,12 +149,24 @@ L:
 		case key = <-c.keyPresses:
 			switch key {
 			case 'p':
-				// If p is pressed, pause the processing on the AWS node
-				// and have the controller print the current turn that is being processed.
-				// If p is pressed again resume the processing and have the controller print "Continuing".
-				pause := make(chan bool, 1)
+				// PAUSEEE
 				fmt.Println("calling pause handler")
-				client.Call(PauseHandler, Request{KeyPresses: c.keyPresses, Pause: pause}, pauseRes)
+				pauseCall := client.Go(PauseHandler, Request{}, pauseRes, nil)
+			X:
+				for {
+					fmt.Println("continue for loop")
+					select {
+					case key = <-c.keyPresses:
+						switch key {
+						case 'p':
+							fmt.Println("calling continue handler")
+							client.Call(ContinueHandler, Request{}, Response{})
+							break X
+						}
+					}
+				}
+				<-pauseCall.Done
+
 				fmt.Println("Paused. Current turn:", pauseRes.CompletedTurns)
 				//go pauseLoop(c.keyPresses, pause)
 				//_ = <-pause
