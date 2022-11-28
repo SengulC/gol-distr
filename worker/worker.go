@@ -7,13 +7,13 @@ import (
 	"math/rand"
 	"net"
 	"net/rpc"
+	"sync"
 	"time"
 	"uk.ac.bris.cs/gameoflife/gol"
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // server
-//
 
 // UpdateBoard TODO: Update a single iteration
 func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
@@ -105,17 +105,20 @@ func calcAliveCells(height, width int, world [][]byte) []util.Cell {
 type UpdateOperations struct {
 	completedTurns int
 	aliveCells     int
+	mutex          sync.Mutex
+	currentWorld   [][]byte
 }
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the ticker method!")
-	if s.completedTurns == 0 {
-		fmt.Println("umm sorry it's turn", res.CompletedTurns)
-		return
-	} else {
-		req.Events <- gol.AliveCellsCount{CompletedTurns: s.completedTurns, CellsCount: s.aliveCells}
-		return
-	}
+	s.mutex.Lock()
+
+	res.CompletedTurns = s.completedTurns
+	fmt.Println("ticker alive cells:", s.aliveCells)
+	res.AliveCellCount = s.aliveCells
+
+	s.mutex.Unlock()
+	return
 }
 
 //func (s *UpdateOperations) SaveImage(req gol.Request, res *gol.Response) (err error) {
@@ -132,36 +135,38 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 //}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
-	//fmt.Println("in update method")
-
+	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
 		return
 	}
 
-	res.World = make([][]byte, req.P.ImageHeight)
+	s.currentWorld = make([][]byte, req.P.ImageHeight)
 	for row := 0; row < req.P.ImageHeight; row++ {
-		res.World[row] = make([]byte, req.P.ImageWidth)
+		s.currentWorld[row] = make([]byte, req.P.ImageWidth)
 		for col := 0; col < req.P.ImageWidth; col++ {
-			res.World[row][col] = req.World[row][col]
+			s.currentWorld[row][col] = req.World[row][col]
 		}
 	}
 
+	turn := 0
 	s.completedTurns = 0
-	for s.completedTurns < req.P.Turns {
-		//req.TurnZero <- true
-		//fmt.Println("passed true to TZ<-")
-		res.World = UpdateBoard(res.World, req.P, req.Events, s.completedTurns)
-		//req.Events <- gol.TurnComplete{CompletedTurns: turn}
-		res.CompletedTurns = s.completedTurns
-		fmt.Println("updated res.compTurns=", res.CompletedTurns)
-		s.completedTurns++
+	for turn < req.P.Turns {
+		s.mutex.Lock()
+		s.currentWorld = UpdateBoard(s.currentWorld, req.P, req.Events, turn)
+		s.mutex.Unlock()
+		s.completedTurns = turn
+		//fmt.Println(s.completedTurns)
+		s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+		turn++
 	}
 
-	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, res.World)
-	res.AliveCellCount = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, res.World)
-	s.aliveCells = res.AliveCellCount
-	//fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
+	fmt.Println(res.AliveCells)
+	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	res.CompletedTurns = turn
+	res.World = s.currentWorld
+	res.AliveCellCount = s.aliveCells
+	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 	return
 }
 
