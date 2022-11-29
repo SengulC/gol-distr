@@ -15,7 +15,7 @@ var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
 var PauseHandler = "UpdateOperations.Pause"
 var ContinueHandler = "UpdateOperations.Continue"
-var workerServer = flag.String("workerServer", "54.243.1.32", "IP:port string to connect to as server")
+var workerServer = flag.String("workerServer", "54.243.1.32:8050", "IP:port string to connect to as server")
 
 type BrokerOperations struct {
 	completedTurns int
