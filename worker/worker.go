@@ -181,7 +181,6 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		s.mutex.Lock()
 		s.currentWorld = a
 		s.completedTurns = turn
-		//fmt.Println(s.completedTurns)
 		s.aliveCells = ac
 		s.mutex.Unlock()
 		fmt.Println("completed turn:", s.completedTurns)
@@ -189,10 +188,11 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	fmt.Println(res.AliveCells)
 	s.mutex.Lock()
-	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-	res.CompletedTurns = turn + 1
-	s.completedTurns = res.CompletedTurns
+	//s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	//s.completedTurns = res.CompletedTurns
+	res.CompletedTurns = s.completedTurns
 	res.World = s.currentWorld
+	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 	res.AliveCellCount = s.aliveCells
 	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 	s.mutex.Unlock()
