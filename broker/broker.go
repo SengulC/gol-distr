@@ -27,8 +27,9 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 	//b.server = workerServer
 	client, _ := rpc.Dial("tcp", *workerServer)
 	defer client.Close()
+	brokerReq := gol.Request{World: req.World, P: req.P}
 
-	client.Call(UpdateHandler, req, res)
+	client.Call(UpdateHandler, brokerReq, gol.Response{})
 	return
 }
 
