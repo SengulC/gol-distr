@@ -36,12 +36,17 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 	fmt.Println("REQUEST ON BROKER:", len(brokerReq.World))
 
 	fmt.Println("abt to call update handler")
-	goCall := client.Go(UpdateHandler, brokerReq, gol.Response{}, nil)
-	fmt.Println("called update handler")
-	select {
-	case <-goCall.Done:
-		return
+	var workerRes = new(gol.Response)
+	err = client.Call(UpdateHandler, brokerReq, workerRes)
+	if err != nil {
+		fmt.Println("ERROR!")
 	}
+	res.World = workerRes.World
+	res.AliveCells = workerRes.AliveCells
+	res.AliveCellCount = workerRes.AliveCellCount
+	res.CompletedTurns = workerRes.CompletedTurns
+	fmt.Println("called update handler")
+	return
 }
 
 func main() {
