@@ -139,6 +139,17 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 	return
 }
 
+func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+	res.CompletedTurns = s.completedTurns
+	return
+}
+
+func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Unlock()
+	return
+}
+
 func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("IN SAVE METHOD")
 	s.mutex.Lock()

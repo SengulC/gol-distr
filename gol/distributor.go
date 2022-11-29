@@ -22,6 +22,8 @@ type distributorChannels struct {
 var UpdateHandler = "UpdateOperations.Update"
 var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
+var PauseHandler = "UpdateOperations.Pause"
+var ContinueHandler = "UpdateOperations.Continue"
 
 type Response struct {
 	World          [][]byte
@@ -88,6 +90,7 @@ func distributor(p Params, c distributorChannels) {
 	var response = new(Response)
 	var tickerRes = new(Response)
 	var saveRes = new(Response)
+	var pauseRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -128,12 +131,20 @@ func distributor(p Params, c distributorChannels) {
 	//fmt.Println(response.AliveCells)
 	timeOver := time.NewTicker(2 * time.Second)
 	var key rune
+	paused := false
 L:
 	for {
 		select {
 		case key = <-c.keyPresses:
 			switch key {
 			case 'p':
+				if !paused {
+					paused = true
+					client.Call(PauseHandler, Request{}, pauseRes)
+					fmt.Println("Paused. Curren turn:", pauseRes.CompletedTurns)
+				} else {
+					client.Call(ContinueHandler, Request{}, pauseRes)
+				}
 			case 's':
 				fmt.Println("Saving...")
 				c.ioCommand <- ioOutput
@@ -151,9 +162,11 @@ L:
 		case <-goCall.Done:
 			break L
 		case <-timeOver.C:
-			client.Call(TickerHandler, Request{}, tickerRes)
-			fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
-			c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
+			if !paused {
+				client.Call(TickerHandler, Request{}, tickerRes)
+				fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
+				c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
+			}
 		}
 	}
 
