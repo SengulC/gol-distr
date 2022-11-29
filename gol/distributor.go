@@ -50,19 +50,6 @@ func makeMatrix(world [][]byte) [][]byte {
 	return world2
 }
 
-//func ticker(events chan<- Event, completedTurns, aliveCellCount int, turnZero chan bool) {
-//	timeOver := time.Tick(2 * time.Second)
-//	for {
-//		//<-turnZero
-//		select {
-//		case <-timeOver:
-//			fmt.Println("2 secs have passed!")
-//			//fmt.Println("2 secs have passed! AND it's not turn 0!")
-//			events <- AliveCellsCount{completedTurns, aliveCellCount}
-//		}
-//	}
-//}
-
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 	// TODO: Create a 2D slice to store the world.
@@ -100,7 +87,7 @@ func distributor(p Params, c distributorChannels) {
 
 	var response = new(Response)
 	var tickerRes = new(Response)
-	//var saveRes = new(Response)
+	var saveRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -140,27 +127,27 @@ func distributor(p Params, c distributorChannels) {
 
 	//fmt.Println(response.AliveCells)
 	timeOver := time.NewTicker(2 * time.Second)
-	//var key rune
+	var key rune
 L:
 	for {
 		select {
-		//case key = <-c.keyPresses:
-		//	switch key {
-		//	case 'p':
-		//	case 's':
-		//		fmt.Println("Saving...")
-		//		c.ioCommand <- ioOutput
-		//		c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
-		//		client.Call(SaveHandler, request, saveRes)
-		//		fmt.Println("ON CLIENT", len(saveRes.World))
-		//		for row := 0; row < p.ImageHeight; row++ {
-		//			for col := 0; col < p.ImageWidth; col++ {
-		//				c.ioOutput <- saveRes.World[row][col]
-		//			}
-		//		}
-		//	case 'q':
-		//	case 'k':
-		//	}
+		case key = <-c.keyPresses:
+			switch key {
+			case 'p':
+			case 's':
+				fmt.Println("Saving...")
+				c.ioCommand <- ioOutput
+				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+				client.Call(SaveHandler, request, saveRes)
+				fmt.Println("ON CLIENT", len(saveRes.World))
+				for row := 0; row < p.ImageHeight; row++ {
+					for col := 0; col < p.ImageWidth; col++ {
+						c.ioOutput <- saveRes.World[row][col]
+					}
+				}
+			case 'q':
+			case 'k':
+			}
 		case <-goCall.Done:
 			break L
 		case <-timeOver.C:
