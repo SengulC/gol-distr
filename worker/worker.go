@@ -120,14 +120,14 @@ func copyMatrix(height, width int, world [][]byte) [][]byte {
 	return world2
 }
 
-type UpdateOperations struct {
+type WorkerOperations struct {
 	completedTurns int
 	aliveCells     int
 	mutex          sync.Mutex
 	currentWorld   [][]byte
 }
 
-func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
+func (s *WorkerOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
 	//fmt.Println("in the ticker method!")
 	s.mutex.Lock()
 
@@ -139,18 +139,18 @@ func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error
 	return
 }
 
-func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+func (s *WorkerOperations) Pause(req gol.Request, res *gol.Response) (err error) {
 	s.mutex.Lock()
 	res.CompletedTurns = s.completedTurns
 	return
 }
 
-func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+func (s *WorkerOperations) Continue(req gol.Request, res *gol.Response) (err error) {
 	s.mutex.Unlock()
 	return
 }
 
-func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
+func (s *WorkerOperations) Save(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("IN SAVE METHOD")
 	s.mutex.Lock()
 	res.World = makeMatrixOfSameSize(s.currentWorld)
@@ -165,7 +165,7 @@ func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) 
 	return
 }
 
-func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
+func (s *WorkerOperations) Update(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
@@ -214,9 +214,8 @@ func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
-	rpc.Register(&UpdateOperations{})
+	rpc.Register(&WorkerOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
-	// do we need 2 change any of this?
 }

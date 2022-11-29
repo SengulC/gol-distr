@@ -7,7 +7,6 @@ import (
 	"net/rpc"
 	"time"
 	"uk.ac.bris.cs/gameoflife/gol"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 var UpdateHandler = "UpdateOperations.Update"
@@ -16,30 +15,32 @@ var SaveHandler = "UpdateOperations.Save"
 var PauseHandler = "UpdateOperations.Pause"
 var ContinueHandler = "UpdateOperations.Continue"
 
-type Response struct {
-	World          [][]byte
-	AliveCells     []util.Cell
-	CompletedTurns int
-	AliveCellCount int
+type BrokerOperations struct {
+	completedTurns int
+	aliveCells     int
+	currentWorld   [][]byte
+	server         *string
 }
 
-type Request struct {
-	World  [][]byte
-	P      gol.Params
-	Events chan<- gol.Event
-}
-
-func broker() {
-	var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
-	client, _ := rpc.Dial("tcp", *server)
+func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err error) {
+	b.server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
+	client, _ := rpc.Dial("tcp", *b.server)
 	defer client.Close()
+
+	client.Call(UpdateHandler, req, res)
+	return
 }
 
 func main() {
-	pAddr := flag.String("port", "8050", "Port to listen on")
+	pAddr := flag.String("port", "8040", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
+	rpc.Register(&BrokerOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
+
+	//var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
+	//client, _ := rpc.Dial("tcp", *server)
+	//defer client.Close()
 }

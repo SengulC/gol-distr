@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"strconv"
-	"time"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type distributorChannels struct {
@@ -18,7 +18,20 @@ type distributorChannels struct {
 	keyPresses <-chan rune
 }
 
-var UpdateHandler = "UpdateOperations.Update"
+var BrokerGOLHandler = "BrokerOperations.BrokerGOL"
+
+type Response struct {
+	World          [][]byte
+	AliveCells     []util.Cell
+	CompletedTurns int
+	AliveCellCount int
+}
+
+type Request struct {
+	World  [][]byte
+	P      Params
+	Events chan<- Event
+}
 
 //var TickerHandler = "UpdateOperations.Ticker"
 //var SaveHandler = "UpdateOperations.Save"
@@ -40,7 +53,7 @@ var UpdateHandler = "UpdateOperations.Update"
 
 //var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
 
-var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+var server = flag.String("server", "127.0.0.1:8040", "IP:port string to connect to as server")
 
 //var flagBool = false
 
@@ -88,12 +101,6 @@ func distributor(p Params, c distributorChannels) {
 	defer client.Close()
 
 	//MOVE TO BROKER?
-	var response = new(Response)
-	var tickerRes = new(Response)
-	var saveRes = new(Response)
-	var pauseRes = new(Response)
-	request := Request{World: worldIn, P: p}
-	//response.World = makeWorld(response.World)
 
 	//var key rune
 	//timeOver := time.NewTicker(2 * time.Second)
@@ -127,50 +134,99 @@ func distributor(p Params, c distributorChannels) {
 	//case <-timeOver.C:
 	//	ticker(client, response, request)
 	//default:
-	goCall := client.Go(UpdateHandler, request, response, nil)
+	fmt.Println("...")
+	var response = new(Response)
+	//var pauseRes = new(Response)
+	//var tickerRes = new(Response)
+	//var saveRes = new(Response)
 
-	//fmt.Println(response.AliveCells)
-	timeOver := time.NewTicker(2 * time.Second)
-	var key rune
-	paused := false
-L:
-	for {
-		select {
-		case key = <-c.keyPresses:
-			switch key {
-			case 'p':
-				if !paused {
-					paused = true
-					client.Call(PauseHandler, Request{}, pauseRes)
-					fmt.Println("Paused. Current turn:", pauseRes.CompletedTurns)
-				} else {
-					paused = false
-					client.Call(ContinueHandler, Request{}, pauseRes)
-				}
-			case 's':
-				fmt.Println("Saving...")
-				c.ioCommand <- ioOutput
-				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
-				client.Call(SaveHandler, request, saveRes)
-				fmt.Println("ON CLIENT", len(saveRes.World))
-				for row := 0; row < p.ImageHeight; row++ {
-					for col := 0; col < p.ImageWidth; col++ {
-						c.ioOutput <- saveRes.World[row][col]
-					}
-				}
-			case 'q':
-			case 'k':
-			}
-		case <-goCall.Done:
-			break L
-		case <-timeOver.C:
-			if !paused {
-				client.Call(TickerHandler, Request{}, tickerRes)
-				fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
-				c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
-			}
-		}
-	}
+	request := Request{World: worldIn, P: p}
+
+	fmt.Println("...")
+	client.Call(BrokerGOLHandler, request, response)
+	//goCall := client.Go(BrokerGOLHandler, request, response, nil)
+
+	//timeOver := time.NewTicker(2 * time.Second)
+	//var key rune
+	//paused := false
+
+	//L:
+	//	for {
+	//		select {
+	//		case key = <-c.keyPresses:
+	//			switch key {
+	//			case 'p':
+	//				if !paused {
+	//					paused = true
+	//					// broker.Pause call
+	//					fmt.Println("PAUSED. Current turn:", pauseRes.CompletedTurns)
+	//				} else {
+	//					paused = false
+	//					// broker.Continue call
+	//				}
+	//			case 's':
+	//				fmt.Println("Saving...")
+	//				c.ioCommand <- ioOutput
+	//				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+	//				// broker.Save call, which return saveRes.World
+	//				for row := 0; row < p.ImageHeight; row++ {
+	//					for col := 0; col < p.ImageWidth; col++ {
+	//						c.ioOutput <- saveRes.World[row][col]
+	//					}
+	//				}
+	//			case 'q':
+	//			case 'k':
+	//			}
+	//		case <-goCall.Done:
+	//			break L
+	//		case <-timeOver.C:
+	//			if !paused {
+	//				// broker.Ticker call
+	//				c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
+	//			}
+	//		}
+	//	}
+
+	fmt.Println("...")
+
+	//L:
+	//	for {
+	//		select {
+	//		case key = <-c.keyPresses:
+	//			switch key {
+	//			case 'p':
+	//				if !paused {
+	//					paused = true
+	//					client.Call(PauseHandler, Request{}, pauseRes)
+	//					fmt.Println("Paused. Current turn:", pauseRes.CompletedTurns)
+	//				} else {
+	//					paused = false
+	//					client.Call(ContinueHandler, Request{}, pauseRes)
+	//				}
+	//			case 's':
+	//				fmt.Println("Saving...")
+	//				c.ioCommand <- ioOutput
+	//				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+	//				client.Call(SaveHandler, request, saveRes)
+	//				fmt.Println("ON CLIENT", len(saveRes.World))
+	//				for row := 0; row < p.ImageHeight; row++ {
+	//					for col := 0; col < p.ImageWidth; col++ {
+	//						c.ioOutput <- saveRes.World[row][col]
+	//					}
+	//				}
+	//			case 'q':
+	//			case 'k':
+	//			}
+	//		case <-goCall.Done:
+	//			break L
+	//		case <-timeOver.C:
+	//			if !paused {
+	//				client.Call(TickerHandler, Request{}, tickerRes)
+	//				fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
+	//				c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
+	//			}
+	//		}
+	//	}
 	//MOVE TO BROKER?
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
