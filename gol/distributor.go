@@ -22,8 +22,6 @@ type distributorChannels struct {
 var UpdateHandler = "UpdateOperations.Update"
 var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
-var PauseHandler = "UpdateOperations.Pause"
-var ContinueHandler = "UpdateOperations.Continue"
 
 type Response struct {
 	World          [][]byte
@@ -36,7 +34,6 @@ type Request struct {
 	World  [][]byte
 	P      Params
 	Events chan<- Event
-	Pause  chan bool
 }
 
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
@@ -102,7 +99,6 @@ func distributor(p Params, c distributorChannels) {
 	var response = new(Response)
 	var tickerRes = new(Response)
 	var saveRes = new(Response)
-	var pauseRes = new(Response)
 	request := Request{World: worldIn, P: p}
 	//response.World = makeWorld(response.World)
 
@@ -149,28 +145,6 @@ L:
 		case key = <-c.keyPresses:
 			switch key {
 			case 'p':
-				// PAUSEEE
-				fmt.Println("calling pause handler")
-				pauseCall := client.Go(PauseHandler, Request{}, pauseRes, nil)
-			X:
-				for {
-					fmt.Println("continue for loop")
-					select {
-					case key = <-c.keyPresses:
-						switch key {
-						case 'p':
-							fmt.Println("calling continue handler")
-							client.Call(ContinueHandler, Request{}, Response{})
-							break X
-						}
-					}
-				}
-				<-pauseCall.Done
-
-				fmt.Println("Paused. Current turn:", pauseRes.CompletedTurns)
-				//go pauseLoop(c.keyPresses, pause)
-				//_ = <-pause
-				//fmt.Println("Continuing.")
 			case 's':
 				fmt.Println("Saving")
 				c.ioCommand <- ioOutput
