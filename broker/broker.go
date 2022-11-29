@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
@@ -28,6 +29,7 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 	client, _ := rpc.Dial("tcp", *workerServer)
 	defer client.Close()
 	brokerReq := gol.Request{World: req.World, P: req.P}
+	fmt.Println("REQUEST ON BROKER:", len(brokerReq.World))
 
 	client.Call(UpdateHandler, brokerReq, gol.Response{})
 	return

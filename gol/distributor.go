@@ -141,6 +141,7 @@ func distributor(p Params, c distributorChannels) {
 	//var saveRes = new(Response)
 
 	request := Request{World: worldIn, P: p}
+	fmt.Println("REQUEST ON LOCAL DISTR:", len(request.World))
 
 	fmt.Println("...")
 	client.Call(BrokerGOLHandler, request, response)

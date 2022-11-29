@@ -166,6 +166,8 @@ func (s *WorkerOperations) Save(req gol.Request, res *gol.Response) (err error) 
 }
 
 func (s *WorkerOperations) Update(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("REQUEST ON WORKER:", len(req.World))
+
 	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
