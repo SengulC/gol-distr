@@ -143,8 +143,9 @@ func distributor(p Params, c distributorChannels) {
 	request := Request{World: worldIn, P: p}
 	fmt.Println("REQUEST ON LOCAL DISTR:", len(request.World))
 
-	fmt.Println("...")
+	fmt.Println("about to call broker call method")
 	client.Call(BrokerGOLHandler, request, response)
+	fmt.Println("called broker call method")
 	//goCall := client.Go(BrokerGOLHandler, request, response, nil)
 
 	//timeOver := time.NewTicker(2 * time.Second)
@@ -187,8 +188,6 @@ func distributor(p Params, c distributorChannels) {
 	//			}
 	//		}
 	//	}
-
-	fmt.Println("...")
 
 	//L:
 	//	for {
@@ -233,6 +232,7 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 	// get back info from brokerServer
 
+	fmt.Println("starting output")
 	c.ioCommand <- ioOutput
 	c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
 	for row := 0; row < p.ImageHeight; row++ {
