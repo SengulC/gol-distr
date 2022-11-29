@@ -174,15 +174,18 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
-		s.mutex.Lock()
-		s.currentWorld = UpdateBoard(s.currentWorld, req.P, req.Events, turn)
+
+		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
+		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 		fmt.Println("UPDATED BOARD!")
 		turn++
+		s.mutex.Lock()
+		s.currentWorld = a
 		s.completedTurns = turn
-		fmt.Println("completed turn:", s.completedTurns)
 		//fmt.Println(s.completedTurns)
-		s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+		s.aliveCells = ac
 		s.mutex.Unlock()
+		fmt.Println("completed turn:", s.completedTurns)
 	}
 
 	fmt.Println(res.AliveCells)
