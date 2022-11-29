@@ -14,17 +14,18 @@ var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
 var PauseHandler = "UpdateOperations.Pause"
 var ContinueHandler = "UpdateOperations.Continue"
+var workerServer = flag.String("workerServer", "54.243.1.32", "IP:port string to connect to as server")
 
 type BrokerOperations struct {
 	completedTurns int
 	aliveCells     int
 	currentWorld   [][]byte
-	server         *string
+	//server         *string
 }
 
 func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err error) {
-	b.server = flag.String("server", "54.243.1.32", "IP:port string to connect to as server")
-	client, _ := rpc.Dial("tcp", *b.server)
+	//b.server = workerServer
+	client, _ := rpc.Dial("tcp", *workerServer)
 	defer client.Close()
 
 	client.Call(UpdateHandler, req, res)

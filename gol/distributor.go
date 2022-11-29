@@ -51,9 +51,9 @@ type Request struct {
 //	Events chan<- Event
 //}
 
-//var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
+//var brokerServer = flag.String("brokerServer", "3.91.54.94:8050", "IP:port string to connect to as brokerServer")
 
-var server = flag.String("server", "127.0.0.1:8040", "IP:port string to connect to as server")
+var brokerServer = flag.String("brokerServer", "127.0.0.1:8040", "IP:port string to connect to as brokerServer")
 
 //var flagBool = false
 
@@ -91,13 +91,13 @@ func distributor(p Params, c distributorChannels) {
 
 	// TODO: Execute all turns of the Game of Life.
 
-	//fmt.Println("trying to connect to server")
+	//fmt.Println("trying to connect to brokerServer")
 	//if flagBool == false {
-	//	server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+	//	brokerServer = flag.String("brokerServer", "127.0.0.1:8050", "IP:port string to connect to as brokerServer")
 	//	flag.Parse()
 	//	flagBool = true
 	//}
-	client, _ := rpc.Dial("tcp", *server)
+	client, _ := rpc.Dial("tcp", *brokerServer)
 	defer client.Close()
 
 	//MOVE TO BROKER?
@@ -120,7 +120,7 @@ func distributor(p Params, c distributorChannels) {
 	//		//}
 	//		//save()
 	//		//case 'q':
-	//		//	//Close the controller client program without causing an error on the GoL server.
+	//		//	//Close the controller client program without causing an error on the GoL brokerServer.
 	//		//	//A new controller should be able to take over interaction with the GoL engine.
 	//		//	//Note that you are free to define the nature of how a new controller can take over interaction.
 	//		//	//Most likely the state will be reset.
@@ -230,7 +230,7 @@ func distributor(p Params, c distributorChannels) {
 	//MOVE TO BROKER?
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	// get back info from server
+	// get back info from brokerServer
 
 	c.ioCommand <- ioOutput
 	c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
