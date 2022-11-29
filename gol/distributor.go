@@ -89,7 +89,7 @@ func distributor(p Params, c distributorChannels) {
 
 	//fmt.Println("trying to connect to server")
 	//if flagBool == false {
-	//	server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+	//	server = flag.String("server", "44.211.173.131:8050", "IP:port string to connect to as server")
 	//	flag.Parse()
 	//	flagBool = true
 	//}
@@ -146,7 +146,7 @@ L:
 			switch key {
 			case 'p':
 			case 's':
-				fmt.Println("Saving")
+				fmt.Println("Saving...")
 				c.ioCommand <- ioOutput
 				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
 				client.Call(SaveHandler, request, saveRes)
