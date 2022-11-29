@@ -190,7 +190,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 	fmt.Println(res.AliveCells)
 	s.mutex.Lock()
 	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-	res.CompletedTurns = turn + 1
+	res.CompletedTurns = turn
 	s.completedTurns = res.CompletedTurns
 	res.World = s.currentWorld
 	res.AliveCellCount = s.aliveCells
