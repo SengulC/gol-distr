@@ -32,7 +32,10 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 	brokerReq := gol.Request{World: req.World, P: req.P}
 	fmt.Println("REQUEST ON BROKER:", len(brokerReq.World))
 
-	client.Call(UpdateHandler, brokerReq, gol.Response{})
+	fmt.Println("abt to call update handler")
+	goCall := client.Go(UpdateHandler, brokerReq, gol.Response{}, nil)
+	<-goCall.Done
+	fmt.Println("called update handler")
 	return
 }
 
