@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 	"strconv"
 	"time"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type distributorChannels struct {
@@ -20,23 +19,24 @@ type distributorChannels struct {
 }
 
 var UpdateHandler = "UpdateOperations.Update"
-var TickerHandler = "UpdateOperations.Ticker"
-var SaveHandler = "UpdateOperations.Save"
-var PauseHandler = "UpdateOperations.Pause"
-var ContinueHandler = "UpdateOperations.Continue"
 
-type Response struct {
-	World          [][]byte
-	AliveCells     []util.Cell
-	CompletedTurns int
-	AliveCellCount int
-}
-
-type Request struct {
-	World  [][]byte
-	P      Params
-	Events chan<- Event
-}
+//var TickerHandler = "UpdateOperations.Ticker"
+//var SaveHandler = "UpdateOperations.Save"
+//var PauseHandler = "UpdateOperations.Pause"
+//var ContinueHandler = "UpdateOperations.Continue"
+//
+//type Response struct {
+//	World          [][]byte
+//	AliveCells     []util.Cell
+//	CompletedTurns int
+//	AliveCellCount int
+//}
+//
+//type Request struct {
+//	World  [][]byte
+//	P      Params
+//	Events chan<- Event
+//}
 
 //var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
 
@@ -44,13 +44,13 @@ var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect 
 
 //var flagBool = false
 
-func makeMatrix(world [][]byte) [][]byte {
-	world2 := make([][]byte, len(world))
-	for col := 0; col < len(world); col++ {
-		world2[col] = make([]byte, len(world))
-	}
-	return world2
-}
+//func makeMatrix(world [][]byte) [][]byte {
+//	world2 := make([][]byte, len(world))
+//	for col := 0; col < len(world); col++ {
+//		world2[col] = make([]byte, len(world))
+//	}
+//	return world2
+//}
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -87,6 +87,7 @@ func distributor(p Params, c distributorChannels) {
 	client, _ := rpc.Dial("tcp", *server)
 	defer client.Close()
 
+	//MOVE TO BROKER?
 	var response = new(Response)
 	var tickerRes = new(Response)
 	var saveRes = new(Response)
@@ -170,6 +171,7 @@ L:
 			}
 		}
 	}
+	//MOVE TO BROKER?
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 	// get back info from server
