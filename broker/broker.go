@@ -27,7 +27,10 @@ type BrokerOperations struct {
 func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("in the broker GOL method")
 	//b.server = workerServer
-	client, _ := rpc.Dial("tcp", *workerServer)
+	client, err := rpc.Dial("tcp", *workerServer)
+	if err != nil {
+		fmt.Println("ummm error.")
+	}
 	defer client.Close()
 	brokerReq := gol.Request{World: req.World, P: req.P}
 	fmt.Println("REQUEST ON BROKER:", len(brokerReq.World))
