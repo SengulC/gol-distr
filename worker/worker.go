@@ -180,7 +180,7 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		turn++
 		s.mutex.Lock()
 		s.currentWorld = a
-		s.completedTurns = turn
+		s.completedTurns = turn - 1
 		s.aliveCells = ac
 		s.mutex.Unlock()
 		fmt.Println("completed turn:", s.completedTurns)
