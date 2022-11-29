@@ -146,7 +146,7 @@ L:
 			switch key {
 			case 'p':
 			case 's':
-				fmt.Println("Saving")
+				fmt.Println("Saving...")
 				c.ioCommand <- ioOutput
 				c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
 				client.Call(SaveHandler, request, saveRes)
