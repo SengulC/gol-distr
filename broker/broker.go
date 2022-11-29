@@ -45,7 +45,7 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 }
 
 func main() {
-	pAddr := flag.String("port", "8040", "Port to listen on")
+	pAddr := flag.String("port", "8050", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&BrokerOperations{})

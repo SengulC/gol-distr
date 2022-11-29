@@ -53,7 +53,7 @@ type Request struct {
 
 //var brokerServer = flag.String("brokerServer", "3.91.54.94:8050", "IP:port string to connect to as brokerServer")
 
-var brokerServer = flag.String("brokerServer", "127.0.0.1:8040", "IP:port string to connect to as brokerServer")
+var brokerServer = flag.String("brokerServer", "127.0.0.1:8050", "IP:port string to connect to as brokerServer")
 
 //var flagBool = false
 
