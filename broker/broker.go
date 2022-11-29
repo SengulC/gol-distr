@@ -23,7 +23,7 @@ type BrokerOperations struct {
 }
 
 func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err error) {
-	b.server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
+	b.server = flag.String("server", "54.243.1.32", "IP:port string to connect to as server")
 	client, _ := rpc.Dial("tcp", *b.server)
 	defer client.Close()
 
