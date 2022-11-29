@@ -141,8 +141,9 @@ L:
 				if !paused {
 					paused = true
 					client.Call(PauseHandler, Request{}, pauseRes)
-					fmt.Println("Paused. Curren turn:", pauseRes.CompletedTurns)
+					fmt.Println("Paused. Current turn:", pauseRes.CompletedTurns)
 				} else {
+					paused = false
 					client.Call(ContinueHandler, Request{}, pauseRes)
 				}
 			case 's':
