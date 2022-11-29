@@ -34,9 +34,11 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 
 	fmt.Println("abt to call update handler")
 	goCall := client.Go(UpdateHandler, brokerReq, gol.Response{}, nil)
-	<-goCall.Done
 	fmt.Println("called update handler")
-	return
+	select {
+	case <-goCall.Done:
+		return
+	}
 }
 
 func main() {
