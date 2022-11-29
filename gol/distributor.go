@@ -36,6 +36,7 @@ type Request struct {
 	Events chan<- Event
 }
 
+<<<<<<< Updated upstream
 var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
 
 //var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
@@ -169,7 +170,7 @@ L:
 			break L
 		case <-timeOver.C:
 			client.Call(TickerHandler, Request{}, tickerRes)
-			fmt.Println("alive cell count on client side:", tickerRes.AliveCellCount)
+			fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
 			c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
 		}
 	}
