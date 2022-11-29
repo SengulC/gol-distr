@@ -174,7 +174,6 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
-
 		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
 		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 		fmt.Println("UPDATED BOARD!")
