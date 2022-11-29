@@ -7,13 +7,16 @@ import (
 	"math/rand"
 	"net"
 	"net/rpc"
+	"sync"
 	"time"
 	"uk.ac.bris.cs/gameoflife/gol"
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
+// server
+
 // UpdateBoard TODO: Update a single iteration
-func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
+func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
 	// worldOut = worldIn
 	worldOut := make([][]byte, p.ImageHeight)
 	for row := 0; row < p.ImageHeight; row++ {
@@ -48,19 +51,22 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 				counter--
 			}
 
-			// if element dead
+			// if element dead, 0
 			if element == 0 {
 				if counter == 3 {
 					worldOut[row][col] = 255
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 0
 				}
 			} else {
-				// if element alive
+				// if element alive, 255
 				if counter < 2 {
 					worldOut[row][col] = 0
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else if counter > 3 {
 					worldOut[row][col] = 0
+					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 255
 				}
@@ -71,48 +77,136 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 	return worldOut
 }
 
-type UpdateOperations struct{}
+func calcAliveCellCount(height, width int, world [][]byte) int {
+	var count int
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func calcAliveCells(height, width int, world [][]byte) []util.Cell {
+	var cells []util.Cell
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				c := util.Cell{X: col, Y: row}
+				cells = append(cells, c)
+			}
+		}
+	}
+	return cells
+}
+
+func makeMatrixOfSameSize(world [][]byte) [][]byte {
+	world2 := make([][]byte, len(world))
+	for col := 0; col < len(world); col++ {
+		world2[col] = make([]byte, len(world))
+	}
+	return world2
+}
+
+func copyMatrix(height, width int, world [][]byte) [][]byte {
+	var world2 [][]byte
+	for col := 0; col < height; col++ {
+		for row := 0; row < width; row++ {
+			world2[row][col] = world[row][col]
+		}
+	}
+	return world2
+}
+
+type UpdateOperations struct {
+	completedTurns int
+	aliveCells     int
+	mutex          sync.Mutex
+	currentWorld   [][]byte
+}
+
+func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
+	//fmt.Println("in the ticker method!")
+	s.mutex.Lock()
+
+	res.CompletedTurns = s.completedTurns
+	//fmt.Println("ticker alive cells:", s.aliveCells)
+	res.AliveCellCount = s.aliveCells
+
+	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+	res.CompletedTurns = s.completedTurns
+	return
+}
+
+func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("IN SAVE METHOD")
+	s.mutex.Lock()
+	res.World = makeMatrixOfSameSize(s.currentWorld)
+	fmt.Println("ON SERVER", len(res.World))
+	fmt.Println("ON SERVER", len(s.currentWorld))
+	for col := 0; col < req.P.ImageHeight; col++ {
+		for row := 0; row < req.P.ImageWidth; row++ {
+			res.World[col][row] = s.currentWorld[col][row]
+		}
+	}
+	s.mutex.Unlock()
+	return
+}
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("in update method")
-
+	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
 		return
 	}
 
-	res.World = make([][]byte, req.P.ImageHeight)
+	s.mutex.Lock()
+	s.completedTurns = 0
+	s.currentWorld = make([][]byte, req.P.ImageHeight)
 	for row := 0; row < req.P.ImageHeight; row++ {
-		res.World[row] = make([]byte, req.P.ImageWidth)
+		s.currentWorld[row] = make([]byte, req.P.ImageWidth)
 		for col := 0; col < req.P.ImageWidth; col++ {
-			res.World[row][col] = req.World[row][col]
+			s.currentWorld[row][col] = req.World[row][col]
 		}
 	}
+	s.mutex.Unlock()
 
 	turn := 0
 	for turn < req.P.Turns {
-		//fmt.Println("TURN LOOP")
-		res.World = UpdateBoard(res.World, req.P)
-		//util.VisualiseMatrix(res.World, req.P.ImageWidth, req.P.ImageHeight)
+		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
+		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+		fmt.Println("UPDATED BOARD!")
 		turn++
+		s.mutex.Lock()
+		s.currentWorld = a
+		s.completedTurns = turn - 1
+		s.aliveCells = ac
+		s.mutex.Unlock()
+		fmt.Println("completed turn:", s.completedTurns)
 	}
 
-	count := 0
-	var cells []util.Cell
-	for row := 0; row < req.P.ImageHeight; row++ {
-		for col := 0; col < req.P.ImageWidth; col++ {
-			if res.World[row][col] == 255 {
-				c := util.Cell{X: col, Y: row}
-				cells = append(cells, c)
-				count++
-			}
-		}
-	}
-
-	res.Cells = cells
-	res.AliveCellCount = count
-
-	fmt.Println("Updated Response struc: World, Cells, AliveCellCount")
+	fmt.Println(res.AliveCells)
+	s.mutex.Lock()
+	//s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	//s.completedTurns = res.CompletedTurns
+	res.CompletedTurns = s.completedTurns
+	res.World = s.currentWorld
+	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	res.AliveCellCount = s.aliveCells
+	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	s.mutex.Unlock()
 	return
 }
 
@@ -124,4 +218,5 @@ func main() {
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
+	// do we need 2 change any of this?
 }
