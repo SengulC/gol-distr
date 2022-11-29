@@ -36,7 +36,7 @@ type Request struct {
 	Events chan<- Event
 }
 
-var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+var server = flag.String("server", "44.211.173.131:8050", "IP:port string to connect to as server")
 
 //var flagBool = false
 
