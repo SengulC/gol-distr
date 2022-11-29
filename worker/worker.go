@@ -161,6 +161,8 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		return
 	}
 
+	s.mutex.Lock()
+	s.completedTurns = 0
 	s.currentWorld = make([][]byte, req.P.ImageHeight)
 	for row := 0; row < req.P.ImageHeight; row++ {
 		s.currentWorld[row] = make([]byte, req.P.ImageWidth)
@@ -168,25 +170,29 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 			s.currentWorld[row][col] = req.World[row][col]
 		}
 	}
+	s.mutex.Unlock()
 
 	turn := 0
-	s.completedTurns = 0
 	for turn < req.P.Turns {
 		s.mutex.Lock()
 		s.currentWorld = UpdateBoard(s.currentWorld, req.P, req.Events, turn)
-		s.mutex.Unlock()
+		fmt.Println("UPDATED BOARD!")
+		turn++
 		s.completedTurns = turn
+		fmt.Println("completed turn:", s.completedTurns)
 		//fmt.Println(s.completedTurns)
 		s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-		turn++
+		s.mutex.Unlock()
 	}
 
 	fmt.Println(res.AliveCells)
+	s.mutex.Lock()
 	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
 	res.CompletedTurns = turn
 	res.World = s.currentWorld
 	res.AliveCellCount = s.aliveCells
 	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	s.mutex.Unlock()
 	return
 }
 
