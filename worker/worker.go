@@ -166,9 +166,8 @@ func (s *WorkerOperations) Save(req gol.Request, res *gol.Response) (err error) 
 }
 
 func (s *WorkerOperations) Update(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("REQUEST ON WORKER:", len(req.World))
-
 	fmt.Println("in the upd method")
+	fmt.Println("REQUEST ON WORKER:", len(req.World))
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
 		return
@@ -217,7 +216,12 @@ func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
-	rpc.Register(&WorkerOperations{})
+	fmt.Println("attempting to reg")
+	err := rpc.Register(&WorkerOperations{})
+	if err != nil {
+		fmt.Println("COULDN'T REG!")
+	}
+	fmt.Println("registered")
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
