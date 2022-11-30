@@ -1,0 +1,6 @@
+goos: darwin
+goarch: amd64
+pkg: uk.ac.bris.cs/gameoflife
+cpu: Intel(R) Core(TM) i5-5287U CPU @ 2.90GHz
+BenchmarkGol/512x512x1000-1-4         	       1	59601023244 ns/op
+BenchmarkGol/512x512x1000-1-4         	
