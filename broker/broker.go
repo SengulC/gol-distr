@@ -32,20 +32,23 @@ func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err er
 		fmt.Println("ummm error.")
 	}
 	defer client.Close()
-	brokerReq := gol.Request{World: req.World, P: req.P}
-	fmt.Println("REQUEST ON BROKER:", len(brokerReq.World))
+	//brokerReq := gol.Request{World: req.World, P: req.P}
+	fmt.Println("REQUEST ON BROKER:", len(req.World))
 
 	fmt.Println("abt to call update handler")
 	var workerRes = new(gol.Response)
-	err = client.Call(UpdateHandler, brokerReq, workerRes)
-	if err != nil {
-		fmt.Println("ERROR!")
-	}
+	goCall := client.Go(UpdateHandler, req, workerRes, nil)
+	fmt.Println("called update handler")
+	//if err != nil {
+	//	fmt.Println("ERROR!")
+	//}
+	fmt.Println("waiting on return")
+	<-goCall.Done
+	fmt.Println("returned")
 	res.World = workerRes.World
 	res.AliveCells = workerRes.AliveCells
 	res.AliveCellCount = workerRes.AliveCellCount
 	res.CompletedTurns = workerRes.CompletedTurns
-	fmt.Println("called update handler")
 	return
 }
 

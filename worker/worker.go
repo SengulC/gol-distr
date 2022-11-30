@@ -213,6 +213,7 @@ func (s *WorkerOperations) Update(req gol.Request, res *gol.Response) (err error
 }
 
 func main() {
+	fmt.Println("hello from worker main")
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
