@@ -7,48 +7,73 @@ import (
 	"net"
 	"net/rpc"
 	"time"
+	"uk.ac.bris.cs/gameoflife/brokerStubs"
 	"uk.ac.bris.cs/gameoflife/gol"
 )
 
-var UpdateHandler = "UpdateOperations.Update"
-var TickerHandler = "UpdateOperations.Ticker"
-var SaveHandler = "UpdateOperations.Save"
-var PauseHandler = "UpdateOperations.Pause"
-var ContinueHandler = "UpdateOperations.Continue"
-var workerServer = flag.String("workerServer", "54.243.1.32:8050", "IP:port string to connect to as server")
+//var BrokerSaveHandler = "BrokerOperations.BrokerSave"
+//var BrokerContinueHandler = "BrokerOperations.BrokerSave"
+
+var workerServer = flag.String("workerServer", "127.0.0.1:8060", "IP:port string to connect to as server")
 
 type BrokerOperations struct {
 	completedTurns int
 	aliveCells     int
 	currentWorld   [][]byte
-	//server         *string
+	client         *rpc.Client
+}
+
+func (b *BrokerOperations) BrokerTicker(req gol.Request, res *gol.Response) (err error) {
+	var workerReq = brokerStub.TickerRequest{World: req.World, P: req.P}
+	var workerRes = new(brokerStub.TickerResponse)
+	b.client.Call(brokerStub.TickerHandler, workerReq, workerRes)
+	res.World = workerRes.World
+	res.CompletedTurns = workerRes.CompletedTurns
+	res.AliveCellCount = workerRes.AliveCellCount
+	fmt.Println(workerRes.AliveCellCount, workerRes.CompletedTurns)
+	return
+}
+
+func (b *BrokerOperations) BrokerSave(req gol.Request, res *gol.Response) (err error) {
+	var workerReq = brokerStub.WorkerRequest{World: req.World, P: req.P}
+	var workerRes = new(brokerStub.WorkerResponse)
+	b.client.Call(brokerStub.SaveHandler, workerReq, workerRes)
+	return
+}
+
+func (b *BrokerOperations) BrokerPause(req gol.Request, res *gol.Response) (err error) {
+	var workerReq = brokerStub.WorkerRequest{World: req.World, P: req.P}
+	var workerRes = new(brokerStub.WorkerResponse)
+	b.client.Call(brokerStub.PauseHandler, workerReq, workerRes)
+	return
+}
+
+func (b *BrokerOperations) BrokerContinue(req gol.Request, res *gol.Response) (err error) {
+	var workerReq = brokerStub.WorkerRequest{World: req.World, P: req.P}
+	var workerRes = new(brokerStub.WorkerResponse)
+	b.client.Call(brokerStub.ContinueHandler, workerReq, workerRes)
+	return
 }
 
 func (b *BrokerOperations) BrokerGOL(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("in the broker GOL method")
-	//b.server = workerServer
-	client, err := rpc.Dial("tcp", *workerServer)
+	b.client, err = rpc.Dial("tcp", *workerServer)
 	if err != nil {
 		fmt.Println("ummm error.")
 	}
-	defer client.Close()
-	//brokerReq := gol.Request{World: req.World, P: req.P}
-	fmt.Println("REQUEST ON BROKER:", len(req.World))
+	defer b.client.Close()
 
-	fmt.Println("abt to call update handler")
-	var workerRes = new(gol.Response)
-	goCall := client.Go(UpdateHandler, req, workerRes, nil)
-	fmt.Println("called update handler")
-	//if err != nil {
-	//	fmt.Println("ERROR!")
-	//}
-	fmt.Println("waiting on return")
-	<-goCall.Done
-	fmt.Println("returned")
+	var workerReq = brokerStub.WorkerRequest{World: req.World, P: req.P}
+	var workerRes = new(brokerStub.WorkerResponse)
+	b.client.Call(brokerStub.UpdateHandler, workerReq, workerRes)
+
 	res.World = workerRes.World
-	res.AliveCells = workerRes.AliveCells
 	res.AliveCellCount = workerRes.AliveCellCount
 	res.CompletedTurns = workerRes.CompletedTurns
+	res.AliveCells = workerRes.AliveCells
+
+	b.currentWorld = workerRes.World
+	b.aliveCells = workerRes.AliveCellCount
+	b.completedTurns = workerRes.CompletedTurns
 	return
 }
 
@@ -60,8 +85,4 @@ func main() {
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
-
-	//var server = flag.String("server", "3.91.54.94:8050", "IP:port string to connect to as server")
-	//client, _ := rpc.Dial("tcp", *server)
-	//defer client.Close()
 }
