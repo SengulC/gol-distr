@@ -28,13 +28,15 @@ var ContinueHandler = "UpdateOperations.Continue"
 var QuitHandler = "UpdateOperations.Quit"
 var KillHandler = "UpdateOperations.Kill"
 var PreservedHandler = "UpdateOperations.FetchPreserved"
+var FetchSDLHandler = "UpdateOperations.FetchSDLData"
 
 type Response struct {
-	World          [][]byte
-	AliveCells     []util.Cell
-	CompletedTurns int
-	AliveCellCount int
-	Preserved      bool
+	World            [][]byte
+	AliveCells       []util.Cell
+	CompletedTurns   int
+	AliveCellCount   int
+	Preserved        bool
+	CellsToBeFlipped []util.Cell
 }
 
 type Request struct {
@@ -63,9 +65,9 @@ func distributor(p Params, c distributorChannels) {
 	for row := 0; row < p.ImageHeight; row++ {
 		for col := 0; col < p.ImageWidth; col++ {
 			worldIn[row][col] = <-c.ioInput
-			//if worldIn[row][col] == 255 {
-			//	c.events <- CellFlipped{0, util.Cell{X: col, Y: row}}
-			//}
+			if worldIn[row][col] != 0 {
+				c.events <- CellFlipped{Cell: util.Cell{X: col, Y: row}}
+			}
 		}
 	}
 	// TODO: Execute all turns of the Game of Life.
@@ -78,6 +80,7 @@ func distributor(p Params, c distributorChannels) {
 	var saveRes = new(Response)
 	var pauseRes = new(Response)
 	var preservedRes = new(Response)
+	var sdlRes = new(Response)
 	var goCall *rpc.Call
 	request := Request{World: worldIn, P: p}
 
@@ -89,14 +92,18 @@ func distributor(p Params, c distributorChannels) {
 		goCall = client.Go(UpdateHandler, request, response, nil)
 	}
 
+	sdlCall := client.Go(FetchSDLHandler, request, sdlRes, nil)
+
 	timeOver := time.NewTicker(2 * time.Second)
 	var key rune
 	paused := false
 	quit := false
+
 L:
 	for {
 		select {
-		case key = <-c.keyPresses:
+		case key = <-c.
+			keyPresses:
 			switch key {
 			case 'p':
 				if !paused {
@@ -131,6 +138,13 @@ L:
 				client.Call(QuitHandler, Request{}, Response{})
 				os.Exit(0)
 			}
+		case <-sdlCall.Done:
+			fmt.Println(sdlRes.CompletedTurns)
+			for i := range sdlRes.CellsToBeFlipped {
+				c.events <- CellFlipped{sdlRes.CompletedTurns, sdlRes.CellsToBeFlipped[i]}
+			}
+			c.events <- TurnComplete{sdlRes.CompletedTurns}
+			sdlCall = client.Go(FetchSDLHandler, request, sdlRes, nil)
 		case <-goCall.Done:
 			break L
 		case <-timeOver.C:

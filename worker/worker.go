@@ -109,12 +109,44 @@ func makeMatrixOfSameSize(world [][]byte) [][]byte {
 	return world2
 }
 
+func differingCells(world1, world2 [][]byte) []util.Cell {
+	var cells []util.Cell
+	for row := 0; row < len(world1); row++ {
+		for col := 0; col < len(world1); col++ {
+			if world1[row][col] != world2[row][col] {
+				cells = append(cells, util.Cell{X: col, Y: row})
+			}
+		}
+	}
+	return cells
+}
+
 type UpdateOperations struct {
-	completedTurns int
-	aliveCells     int
-	mutex          sync.Mutex
-	currentWorld   [][]byte
-	preserved      bool
+	completedTurns   int
+	aliveCells       int
+	mutex            sync.Mutex
+	currentWorld     [][]byte
+	previousWorld    [][]byte
+	preserved        bool
+	cellsToBeFlipped []util.Cell
+	currentTurn      bool
+}
+
+func (s *UpdateOperations) FetchSDLData(req gol.Request, res *gol.Response) (err error) {
+	for {
+		s.mutex.Lock()
+		t := s.currentTurn
+		c := s.cellsToBeFlipped
+		turns := s.completedTurns
+		s.mutex.Unlock()
+
+		if t {
+			res.CellsToBeFlipped = c
+			res.CompletedTurns = turns
+			res.CompletedTurns = turns
+			return
+		}
+	}
 }
 
 func (s *UpdateOperations) Kill(req gol.Request, res *gol.Response) (err error) {
@@ -194,14 +226,28 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
+		s.mutex.Lock()
+		s.currentTurn = false // turn started but not finished
+		s.mutex.Unlock()
+
 		a := UpdateBoard(s.currentWorld, req.P)
 		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+		c := differingCells(a, s.currentWorld)
 		turn++
+
 		s.mutex.Lock()
+		s.previousWorld = s.currentWorld
 		s.currentWorld = a
 		s.completedTurns = turn - 1
 		s.aliveCells = ac
+		s.cellsToBeFlipped = c
+		s.currentTurn = true // turn finished
 		s.mutex.Unlock()
+
+		// can run sdl check here
+		// have a global variable of cellsToFlip (current vs prevWorld)
+		// have a method called on the distr. that fetches this data at the end of every turn
+
 	}
 
 	s.mutex.Lock()
