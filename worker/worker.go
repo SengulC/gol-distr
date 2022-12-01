@@ -55,7 +55,6 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 			if element == 0 {
 				if counter == 3 {
 					worldOut[row][col] = 255
-					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 0
 				}
@@ -63,10 +62,8 @@ func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 				// if element alive, 255
 				if counter < 2 {
 					worldOut[row][col] = 0
-					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else if counter > 3 {
 					worldOut[row][col] = 0
-					//events <- gol.CellFlipped{CompletedTurns: currentTurn, Cell: util.Cell{X: col, Y: row}}
 				} else {
 					worldOut[row][col] = 255
 				}
