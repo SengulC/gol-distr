@@ -143,7 +143,6 @@ func (s *UpdateOperations) FetchSDLData(req gol.Request, res *gol.Response) (err
 		if t {
 			res.CellsToBeFlipped = c
 			res.CompletedTurns = turns
-			res.CompletedTurns = turns
 			return
 		}
 	}
