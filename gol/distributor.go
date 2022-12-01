@@ -45,7 +45,7 @@ type Request struct {
 	Events chan<- Event
 }
 
-// to be changed to AWS node when AWS instance is instantiated
+// TODO change ip to AWS node when AWS instance is instantiated
 var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
 
 // distributor divides the work between workers and interacts with other goroutines.
