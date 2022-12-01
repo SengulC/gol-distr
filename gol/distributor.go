@@ -43,8 +43,10 @@ type Request struct {
 	Events chan<- Event
 }
 
-// to be changed to AWS node when AWS instance is instantiated
-var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
+// TODO change to an AWS node when AWS instance is instantiated
+var server = flag.String("server", "34.230.43.184:8050", "IP:port string to connect to as server")
+
+//var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
