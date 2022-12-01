@@ -17,7 +17,7 @@ import (
 // server
 
 // UpdateBoard TODO: Update a single iteration
-func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, currentTurn int) [][]byte {
+func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
 	// worldOut = worldIn
 	worldOut := make([][]byte, p.ImageHeight)
 	for row := 0; row < p.ImageHeight; row++ {
@@ -36,13 +36,12 @@ func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, curren
 			// iterate through all neighbors of given element
 			for dy := -1; dy <= 1; dy++ {
 				for dx := -1; dx <= 1; dx++ {
-					// creates 3x3 matrix w element as centerpiece, but centerpiece is included as well ofc.
+					// creates 3x3 matrix w element as centerpiece, but centerpiece is included as well
 					nRow := (row + dx + p.ImageHeight) % p.ImageHeight
 					nCol := (col + dy + p.ImageWidth) % p.ImageWidth
 					// increment counter if given neighbor is alive
 					if worldIn[nRow][nCol] == 255 {
 						counter++
-						// fmt.Println(counter)
 					}
 				}
 			}
@@ -74,7 +73,6 @@ func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, curren
 			}
 		}
 	}
-	fmt.Println("currentTurn:", currentTurn)
 	return worldOut
 }
 
@@ -126,9 +124,7 @@ func (s *UpdateOperations) Kill(req gol.Request, res *gol.Response) (err error) 
 }
 
 func (s *UpdateOperations) FetchPreserved(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("in fetch preserved")
 	res.Preserved = s.preserved
-	fmt.Println("fetched preserved:", res.Preserved)
 	return
 }
 
@@ -137,16 +133,17 @@ func (s *UpdateOperations) Quit(req gol.Request, res *gol.Response) (err error) 
 	s.mutex.Lock()
 	s.preserved = true
 	s.mutex.Unlock()
-	s.Pause(req, res)
+	err = s.Pause(req, res)
+	if err != nil {
+		return err
+	}
 	return
 }
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
-	//fmt.Println("in the ticker method!")
 	s.mutex.Lock()
 
 	res.CompletedTurns = s.completedTurns
-	//fmt.Println("ticker alive cells:", s.aliveCells)
 	res.AliveCellCount = s.aliveCells
 
 	s.mutex.Unlock()
@@ -160,12 +157,12 @@ func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error)
 }
 
 func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+	res.CompletedTurns = s.completedTurns
 	s.mutex.Unlock()
 	return
 }
 
 func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("IN SAVE METHOD w", s.preserved, s.completedTurns)
 	s.mutex.Lock()
 	res.World = makeMatrixOfSameSize(s.currentWorld)
 	for col := 0; col < req.P.ImageHeight; col++ {
@@ -197,22 +194,17 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
-		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
+		a := UpdateBoard(s.currentWorld, req.P)
 		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-		//fmt.Println("UPDATED BOARD!", turn)
 		turn++
 		s.mutex.Lock()
 		s.currentWorld = a
 		s.completedTurns = turn - 1
 		s.aliveCells = ac
 		s.mutex.Unlock()
-		//fmt.Println("completed turn:", s.completedTurns)
 	}
 
-	fmt.Println(res.AliveCells)
 	s.mutex.Lock()
-	//s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-	//s.completedTurns = res.CompletedTurns
 	res.CompletedTurns = s.completedTurns
 	res.World = s.currentWorld
 	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
@@ -226,9 +218,11 @@ func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
-	rpc.Register(&UpdateOperations{})
+	err := rpc.Register(&UpdateOperations{})
+	if err != nil {
+		return
+	}
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
-	// do we need 2 change any of this?
 }
