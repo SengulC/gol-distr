@@ -40,9 +40,8 @@ type Response struct {
 }
 
 type Request struct {
-	World  [][]byte
-	P      Params
-	Events chan<- Event
+	World [][]byte
+	P     Params
 }
 
 // TODO change ip to AWS node when AWS instance is instantiated

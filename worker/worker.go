@@ -243,11 +243,6 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 		s.cellsToBeFlipped = c
 		s.currentTurn = true // turn finished
 		s.mutex.Unlock()
-
-		// can run sdl check here
-		// have a global variable of cellsToFlip (current vs prevWorld)
-		// have a method called on the distr. that fetches this data at the end of every turn
-
 	}
 
 	s.mutex.Lock()
