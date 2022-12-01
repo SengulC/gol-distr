@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/rpc"
+	"os"
 	"strconv"
 	"time"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -24,6 +25,8 @@ var TickerHandler = "UpdateOperations.Ticker"
 var SaveHandler = "UpdateOperations.Save"
 var PauseHandler = "UpdateOperations.Pause"
 var ContinueHandler = "UpdateOperations.Continue"
+var QuitHandler = "UpdateOperations.Quit"
+var KillHandler = "UpdateOperations.Kill"
 
 type Response struct {
 	World          [][]byte
@@ -38,7 +41,7 @@ type Request struct {
 	Events chan<- Event
 }
 
-var server = flag.String("server", "52.87.206.238:8050", "IP:port string to connect to as server")
+var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
 
 //var server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
 
@@ -132,6 +135,7 @@ func distributor(p Params, c distributorChannels) {
 	timeOver := time.NewTicker(2 * time.Second)
 	var key rune
 	paused := false
+	quit := false
 L:
 	for {
 		select {
@@ -157,15 +161,21 @@ L:
 						c.ioOutput <- saveRes.World[row][col]
 					}
 				}
-			case 'q':
+				fmt.Println("Saving...", saveRes.CompletedTurns)
 			case 'k':
+				quit = true
+				client.Call(KillHandler, Request{}, Response{})
+				break
+			case 'q':
+				client.Call(QuitHandler, Request{}, Response{})
+				os.Exit(0)
+				break
 			}
 		case <-goCall.Done:
 			break L
 		case <-timeOver.C:
 			if !paused {
 				client.Call(TickerHandler, Request{}, tickerRes)
-				fmt.Println("turn & alive cell count on client side:", tickerRes.CompletedTurns, tickerRes.AliveCellCount)
 				c.events <- AliveCellsCount{CompletedTurns: tickerRes.CompletedTurns, CellsCount: tickerRes.AliveCellCount}
 			}
 		}
@@ -174,11 +184,13 @@ L:
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 	// get back info from server
 
-	c.ioCommand <- ioOutput
-	c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
-	for row := 0; row < p.ImageHeight; row++ {
-		for col := 0; col < p.ImageWidth; col++ {
-			c.ioOutput <- response.World[row][col]
+	if !quit {
+		c.ioCommand <- ioOutput
+		c.ioFilename <- name + "x" + strconv.Itoa(p.Turns)
+		for row := 0; row < p.ImageHeight; row++ {
+			for col := 0; col < p.ImageWidth; col++ {
+				c.ioOutput <- response.World[row][col]
+			}
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"net/rpc"
+	"os"
 	"sync"
 	"time"
 	"uk.ac.bris.cs/gameoflife/gol"
@@ -110,21 +111,31 @@ func makeMatrixOfSameSize(world [][]byte) [][]byte {
 	return world2
 }
 
-func copyMatrix(height, width int, world [][]byte) [][]byte {
-	var world2 [][]byte
-	for col := 0; col < height; col++ {
-		for row := 0; row < width; row++ {
-			world2[row][col] = world[row][col]
-		}
-	}
-	return world2
-}
-
 type UpdateOperations struct {
 	completedTurns int
 	aliveCells     int
 	mutex          sync.Mutex
 	currentWorld   [][]byte
+	preserved      bool
+}
+
+func (s *UpdateOperations) Kill(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("KILLING")
+	s.mutex.Lock()
+	s.currentWorld = makeMatrixOfSameSize(s.currentWorld)
+	s.completedTurns = 0
+	s.aliveCells = 0
+	s.mutex.Unlock()
+	os.Exit(0)
+	return
+}
+
+func (s *UpdateOperations) Quit(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("QUITTING CONTROLLER")
+	s.mutex.Lock()
+	s.preserved = true
+	s.mutex.Unlock()
+	return
 }
 
 func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
@@ -151,21 +162,30 @@ func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err err
 }
 
 func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
-	fmt.Println("IN SAVE METHOD")
+	fmt.Println("IN SAVE METHOD w", s.preserved, s.completedTurns)
 	s.mutex.Lock()
 	res.World = makeMatrixOfSameSize(s.currentWorld)
-	fmt.Println("ON SERVER", len(res.World))
-	fmt.Println("ON SERVER", len(s.currentWorld))
 	for col := 0; col < req.P.ImageHeight; col++ {
 		for row := 0; row < req.P.ImageWidth; row++ {
 			res.World[col][row] = s.currentWorld[col][row]
 		}
 	}
+	res.CompletedTurns = s.completedTurns
 	s.mutex.Unlock()
 	return
 }
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
+HERE:
+	if s.preserved {
+		fmt.Println("in update after restarting controller")
+		//s.Pause(req, res)
+		req = gol.Request{
+			World:  s.currentWorld,
+			P:      req.P,
+			Events: req.Events,
+		}
+	}
 	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
@@ -185,16 +205,19 @@ func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error
 
 	turn := 0
 	for turn < req.P.Turns {
+		if s.preserved {
+			goto HERE
+		}
 		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
 		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-		fmt.Println("UPDATED BOARD!")
+		fmt.Println("UPDATED BOARD!", turn)
 		turn++
 		s.mutex.Lock()
 		s.currentWorld = a
 		s.completedTurns = turn - 1
 		s.aliveCells = ac
 		s.mutex.Unlock()
-		fmt.Println("completed turn:", s.completedTurns)
+		//fmt.Println("completed turn:", s.completedTurns)
 	}
 
 	fmt.Println(res.AliveCells)
