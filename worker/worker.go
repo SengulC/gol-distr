@@ -74,7 +74,7 @@ func UpdateBoard(worldIn [][]byte, p gol.Params, events chan<- gol.Event, curren
 			}
 		}
 	}
-
+	fmt.Println("currentTurn:", currentTurn)
 	return worldOut
 }
 
@@ -121,12 +121,14 @@ type UpdateOperations struct {
 
 func (s *UpdateOperations) Kill(req gol.Request, res *gol.Response) (err error) {
 	fmt.Println("KILLING")
-	s.mutex.Lock()
-	s.currentWorld = makeMatrixOfSameSize(s.currentWorld)
-	s.completedTurns = 0
-	s.aliveCells = 0
-	s.mutex.Unlock()
 	os.Exit(0)
+	return
+}
+
+func (s *UpdateOperations) FetchPreserved(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("in fetch preserved")
+	res.Preserved = s.preserved
+	fmt.Println("fetched preserved:", res.Preserved)
 	return
 }
 
@@ -135,6 +137,7 @@ func (s *UpdateOperations) Quit(req gol.Request, res *gol.Response) (err error) 
 	s.mutex.Lock()
 	s.preserved = true
 	s.mutex.Unlock()
+	s.Pause(req, res)
 	return
 }
 
@@ -176,17 +179,6 @@ func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) 
 }
 
 func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
-HERE:
-	if s.preserved {
-		fmt.Println("in update after restarting controller")
-		//s.Pause(req, res)
-		req = gol.Request{
-			World:  s.currentWorld,
-			P:      req.P,
-			Events: req.Events,
-		}
-	}
-	fmt.Println("in the upd method")
 	if len(req.World) == 0 {
 		err = errors.New("world is empty")
 		return
@@ -205,12 +197,9 @@ HERE:
 
 	turn := 0
 	for turn < req.P.Turns {
-		if s.preserved {
-			goto HERE
-		}
 		a := UpdateBoard(s.currentWorld, req.P, req.Events, turn)
 		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
-		fmt.Println("UPDATED BOARD!", turn)
+		//fmt.Println("UPDATED BOARD!", turn)
 		turn++
 		s.mutex.Lock()
 		s.currentWorld = a

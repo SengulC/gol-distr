@@ -27,12 +27,14 @@ var PauseHandler = "UpdateOperations.Pause"
 var ContinueHandler = "UpdateOperations.Continue"
 var QuitHandler = "UpdateOperations.Quit"
 var KillHandler = "UpdateOperations.Kill"
+var PreservedHandler = "UpdateOperations.FetchPreserved"
 
 type Response struct {
 	World          [][]byte
 	AliveCells     []util.Cell
 	CompletedTurns int
 	AliveCellCount int
+	Preserved      bool
 }
 
 type Request struct {
@@ -81,12 +83,6 @@ func distributor(p Params, c distributorChannels) {
 
 	// TODO: Execute all turns of the Game of Life.
 
-	//fmt.Println("trying to connect to server")
-	//if flagBool == false {
-	//	server = flag.String("server", "127.0.0.1:8050", "IP:port string to connect to as server")
-	//	flag.Parse()
-	//	flagBool = true
-	//}
 	client, _ := rpc.Dial("tcp", *server)
 	defer client.Close()
 
@@ -94,7 +90,10 @@ func distributor(p Params, c distributorChannels) {
 	var tickerRes = new(Response)
 	var saveRes = new(Response)
 	var pauseRes = new(Response)
+	var preservedRes = new(Response)
+	var goCall *rpc.Call
 	request := Request{World: worldIn, P: p}
+
 	//response.World = makeWorld(response.World)
 
 	//var key rune
@@ -129,7 +128,13 @@ func distributor(p Params, c distributorChannels) {
 	//case <-timeOver.C:
 	//	ticker(client, response, request)
 	//default:
-	goCall := client.Go(UpdateHandler, request, response, nil)
+	client.Call(PreservedHandler, Request{}, preservedRes)
+	if preservedRes.Preserved == true {
+		goCall = client.Go(ContinueHandler, Request{}, pauseRes, nil)
+		<-goCall.Done
+	} else {
+		goCall = client.Go(UpdateHandler, request, response, nil)
+	}
 
 	//fmt.Println(response.AliveCells)
 	timeOver := time.NewTicker(2 * time.Second)
@@ -165,6 +170,7 @@ L:
 			case 'k':
 				quit = true
 				client.Call(KillHandler, Request{}, Response{})
+				os.Exit(0)
 				break
 			case 'q':
 				client.Call(QuitHandler, Request{}, Response{})
