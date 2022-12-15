@@ -1,0 +1,225 @@
+package main
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"math/rand"
+	"net"
+	"net/rpc"
+	"os"
+	"sync"
+	"time"
+	"uk.ac.bris.cs/gameoflife/gol"
+	"uk.ac.bris.cs/gameoflife/util"
+)
+
+// server
+
+// UpdateBoard TODO: Update a single iteration
+func UpdateBoard(worldIn [][]byte, p gol.Params) [][]byte {
+	// worldOut = worldIn
+	worldOut := make([][]byte, p.ImageHeight)
+	for row := 0; row < p.ImageHeight; row++ {
+		worldOut[row] = make([]byte, p.ImageWidth)
+		for col := 0; col < p.ImageWidth; col++ {
+			worldOut[row][col] = 0
+		}
+	}
+
+	for row := 0; row < p.ImageHeight; row++ {
+		for col := 0; col < p.ImageWidth; col++ {
+			// CURRENT ELEMENT AND ITS NEIGHBOR COUNT RESET
+			element := worldIn[row][col]
+			counter := 0
+
+			// iterate through all neighbors of given element
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					// creates 3x3 matrix w element as centerpiece, but centerpiece is included as well
+					nRow := (row + dx + p.ImageHeight) % p.ImageHeight
+					nCol := (col + dy + p.ImageWidth) % p.ImageWidth
+					// increment counter if given neighbor is alive
+					if worldIn[nRow][nCol] == 255 {
+						counter++
+					}
+				}
+			}
+
+			// if element is alive exclude it from the 3x3 matrix counter
+			if element == 255 {
+				counter--
+			}
+
+			// if element dead, 0
+			if element == 0 {
+				if counter == 3 {
+					worldOut[row][col] = 255
+				} else {
+					worldOut[row][col] = 0
+				}
+			} else {
+				// if element alive, 255
+				if counter < 2 {
+					worldOut[row][col] = 0
+				} else if counter > 3 {
+					worldOut[row][col] = 0
+				} else {
+					worldOut[row][col] = 255
+				}
+			}
+		}
+	}
+	return worldOut
+}
+
+func calcAliveCellCount(height, width int, world [][]byte) int {
+	var count int
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func calcAliveCells(height, width int, world [][]byte) []util.Cell {
+	var cells []util.Cell
+	for row := 0; row < height; row++ {
+		for col := 0; col < width; col++ {
+			if world[row][col] == 255 {
+				c := util.Cell{X: col, Y: row}
+				cells = append(cells, c)
+			}
+		}
+	}
+	return cells
+}
+
+func makeMatrixOfSameSize(world [][]byte) [][]byte {
+	world2 := make([][]byte, len(world))
+	for col := 0; col < len(world); col++ {
+		world2[col] = make([]byte, len(world))
+	}
+	return world2
+}
+
+type UpdateOperations struct {
+	completedTurns int
+	aliveCells     int
+	mutex          sync.Mutex
+	currentWorld   [][]byte
+	preserved      bool
+}
+
+func (s *UpdateOperations) Kill(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("KILLING")
+	os.Exit(0)
+	return
+}
+
+func (s *UpdateOperations) FetchPreserved(req gol.Request, res *gol.Response) (err error) {
+	res.Preserved = s.preserved
+	return
+}
+
+func (s *UpdateOperations) Quit(req gol.Request, res *gol.Response) (err error) {
+	fmt.Println("QUITTING CONTROLLER")
+	s.mutex.Lock()
+	s.preserved = true
+	s.mutex.Unlock()
+	err = s.Pause(req, res)
+	if err != nil {
+		return err
+	}
+	return
+}
+
+func (s *UpdateOperations) Ticker(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+
+	res.CompletedTurns = s.completedTurns
+	res.AliveCellCount = s.aliveCells
+
+	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Pause(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+	res.CompletedTurns = s.completedTurns
+	return
+}
+
+func (s *UpdateOperations) Continue(req gol.Request, res *gol.Response) (err error) {
+	res.CompletedTurns = s.completedTurns
+	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Save(req gol.Request, res *gol.Response) (err error) {
+	s.mutex.Lock()
+	res.World = makeMatrixOfSameSize(s.currentWorld)
+	for col := 0; col < req.P.ImageHeight; col++ {
+		for row := 0; row < req.P.ImageWidth; row++ {
+			res.World[col][row] = s.currentWorld[col][row]
+		}
+	}
+	res.CompletedTurns = s.completedTurns
+	s.mutex.Unlock()
+	return
+}
+
+func (s *UpdateOperations) Update(req gol.Request, res *gol.Response) (err error) {
+	if len(req.World) == 0 {
+		err = errors.New("world is empty")
+		return
+	}
+
+	s.mutex.Lock()
+	s.completedTurns = 0
+	s.currentWorld = make([][]byte, req.P.ImageHeight)
+	for row := 0; row < req.P.ImageHeight; row++ {
+		s.currentWorld[row] = make([]byte, req.P.ImageWidth)
+		for col := 0; col < req.P.ImageWidth; col++ {
+			s.currentWorld[row][col] = req.World[row][col]
+		}
+	}
+	s.mutex.Unlock()
+
+	turn := 0
+	for turn < req.P.Turns {
+		a := UpdateBoard(s.currentWorld, req.P)
+		ac := calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+		turn++
+		s.mutex.Lock()
+		s.currentWorld = a
+		s.completedTurns = turn - 1
+		s.aliveCells = ac
+		s.mutex.Unlock()
+	}
+
+	s.mutex.Lock()
+	res.CompletedTurns = s.completedTurns
+	res.World = s.currentWorld
+	s.aliveCells = calcAliveCellCount(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	res.AliveCellCount = s.aliveCells
+	res.AliveCells = calcAliveCells(req.P.ImageHeight, req.P.ImageWidth, s.currentWorld)
+	s.mutex.Unlock()
+	return
+}
+
+func main() {
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	flag.Parse()
+	rand.Seed(time.Now().UnixNano())
+	err := rpc.Register(&UpdateOperations{})
+	if err != nil {
+		return
+	}
+	listener, _ := net.Listen("tcp", ":"+*pAddr)
+	defer listener.Close()
+	rpc.Accept(listener)
+}
