@@ -1,26 +1,10 @@
 # CSA Coursework: Game of Life
 
-**[Video Walkthrough of Parallel Component (note that submission date is incorrect in the video!) (skip to 04:20 to skip IntelliJ install and project opening steps)](https://web.microsoftstream.com/video/990e039f-4bc1-4b22-b0b1-ae895ee07163)** Please note that the rest of assignment will be introduced after reading week
-
-**[Alternative perspective on interfaces in Go done by George](https://web.microsoftstream.com/video/30a6b464-aa7a-4e56-abf8-3534275440e3)**
-
-
-**[Video Walkthrough of Distributed Component](https://web.microsoftstream.com/video/b4f92750-6f76-4f51-8d37-93413c3cb088)** 
-<!-- **[Coursework Q&A Recording](https://web.microsoftstream.com/video/ab833321-3a78-4c83-b87e-16ce1b5c244f)** -->
-
-<!--**[Video Walkthrough of Report Component](https://web.microsoftstream.com/video/b5e8cf95-981c-4c26-8522-cc0210293d51)** Also see this document which accompanies the video: **[All report guidance with links collated into single document](https://github.com/UoB-CSA/gol-skeleton/blob/master/content/ReporGuidanceCollated.md)**-->
-
-
-This is the Computer Systems A summative coursework. The coursework is worth 80% of the unit mark. It is to be completed in your programming pairs. You must report any change to your pairing to the unit director *before* starting your assignment. It runs over 4 weeks (5 weeks including the reading week) and the deadline for submitting all your work is **Thursday 1st December 13:00**.
-
-Talk to each other regularly and make sure you manage your team well. Let us know about issues before they grow to affect your team’s performance. It is important to carefully manage your time for this assignment. Do not spend hours trying to debug on your own; use pair programming, seek help from our teaching assistants during scheduled labs and ask questions on Teams.
-
-**Do not plagiarise.** Both team members should understand all code developed in detail. 
+This is the Computer Systems A summative coursework as completed by Sengul Cagdal and Rahat Mittal. 
+Below is the original task description. A report covering the design and development of the project can be found in the root directory.
 
 ## Task Overview
-
 ### Introduction
-
 The British mathematician John Horton Conway devised a cellular automaton named ‘The Game of Life’. The game resides on a 2-valued 2D matrix, i.e. a binary image, where the cells can either be ‘alive’ (pixel value 255 - white) or ‘dead’ (pixel value 0 - black). The game evolution is determined by its initial state and requires no further input. Every cell interacts with its eight neighbour pixels: cells that are horizontally, vertically, or diagonally adjacent. At each matrix update in time the following transitions may occur to create the next evolution of the domain:
 
 - any live cell with fewer than two live neighbours dies
@@ -39,26 +23,6 @@ To help you along, you are given a simple skeleton project. The skeleton include
 You **must not** modify any of the files ending in `_test.go`. We will be using these tests to judge the correctness of your implementation.
 
 The skeleton code uses SDL. This is a basic graphics library which you already used in Imperative Programming unit. To install the library follow the following instructions:
-
-- **Linux Lab Machines** - SDL should already be installed and working.
-- **Personal Ubuntu PCs** - `sudo apt install libsdl2-dev`
-- **MacOS** - `brew install sdl2` or use the official [`.dmg` installer](https://www.libsdl.org/download-2.0.php).
-- **Other** - Consult the [official documentation](https://wiki.libsdl.org/Installation) or see our [experimental instructions for running natively on Windows](content/windows_sdl_native.md)
-
-### Submission
-
-The coursework requires two independent implementations. You will be required to submit **both** implementations (assuming both were attempted). Every student is required to upload their full work to Blackboard. There will be three separate submissions points on Blackboard - one for the report and two for each implementation.
-
-- For the report, you must submit a single file called `report.pdf`. [report submission point - NOT YET AVAILABLE](#)
-- For the parallel implementation, you must submit a single zip file called `parallel.zip`. It must contain all the code required to compile and run the program. [parallel submission point - NOT YET AVAILABLE](#)
-- For the distributed implementation, you must submit a single zip file called `distributed.zip`. It must contain all the code required to compile and run the program. [distributed submission point - NOT YET AVAILABLE](#)
-- If you have multiple versions, only submit the ones you wish us to check for correctness (one zip for parallel and one for distributed). Other versions may be shared via OneDrive with Sion, Pui and Michael.
-
-Submitting different filenames or file formats (e.g. `.docx`, `.tex`, `.7z` or `.rar`) will result in a mark penalty.
-
-You should be using `git` for version control, however, please don't include your `.git` directory in your submission. You can generate a correct archive using the command `git archive -o [FILENAME].zip HEAD`. 
-
-Make sure you submit it early (not last minute!) to avoid upload problems. **Each team member has to upload an identical copy of the team's work.**
 
 ## Stage 1 - Parallel Implementation
 
@@ -286,6 +250,7 @@ Analyse the performance of your new solution and compare it with your previous i
 -----------------------------------------------------------------------
 
 ## Mark Scheme
+**To note, we received a mark of 63%.**
 
 You will receive a mark out of 100 for this coursework.
 
@@ -316,12 +281,3 @@ You need to submit a CONCISE (**strictly** max 6 pages) report which should cove
 Functionality and Design: Outline what functionality you have implemented, which problems you have solved with your implementations and how your program is designed to solve the problems efficiently and effectively.
 
 Critical Analysis: Describe the experiments and analysis you carried out. Provide a selection of appropriate results. Keep a history of your implementations and provide benchmark results from various stages. Explain and analyse the benchmark results obtained. Analyse the important factors responsible for the virtues and limitations of your implementations.
-
-Make sure your team member’s names and user names appear on page 1 of the report. **Do not include a cover page.**
-
-## Viva
-
-You will be required to demonstrate your implementations in a viva. This will include running tests as well as showing PGM image output and working keyboard control.
-
-As part of the viva, we will also discuss your report. You should be prepared to discuss and expand on any points mentioned in your report.
-
