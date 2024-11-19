@@ -1,7 +1,7 @@
 # CSA Coursework: Game of Life
 
 This is the Computer Systems A summative coursework as completed by Sengul Cagdal and Rahat Mittal. 
-Below is the original task description. A report covering the design and development of the project can be found in the root directory.
+Below is the original task description. A report covering the design and development of the project can be found in the root directory, named 'CSA REPORT'.
 
 ## Task Overview
 ### Introduction
