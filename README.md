@@ -3,6 +3,8 @@
 This is the Computer Systems A summative coursework's distributed version as completed by Sengul Cagdal and Rahat Mittal. 
 Below is the original task description. A report covering the design and development of the project can be found in the root directory, named 'CSA REPORT'.
 
+Link to the concurrent implementation's repo: https://github.com/SengulC/gol-concurrent.
+
 ## Task Overview
 ### Introduction
 The British mathematician John Horton Conway devised a cellular automaton named ‘The Game of Life’. The game resides on a 2-valued 2D matrix, i.e. a binary image, where the cells can either be ‘alive’ (pixel value 255 - white) or ‘dead’ (pixel value 0 - black). The game evolution is determined by its initial state and requires no further input. Every cell interacts with its eight neighbour pixels: cells that are horizontally, vertically, or diagonally adjacent. At each matrix update in time the following transitions may occur to create the next evolution of the domain:
